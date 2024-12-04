@@ -45,6 +45,7 @@ const
   MemSize = 65536;
   Reg4 : Array[0..3] of String = ('AX','BC','DE','HL');
   Reg8 : Array[0..7] Of String = ('X','A','C','B','E','D','L','H');
+  Mem1 : Array[0..1] of String = ('[DE]','[HL]');
 
 var
   Form1: TForm1;
@@ -104,9 +105,11 @@ var
   s   : string;
   R   : Integer;
   addr : Word;
+  OldOffset : LongInt;
 
 
 begin
+  OldOffset := SourceOffset;
   S := SourceOffset.ToHexString(4)+': ';
 
   R := 0;
@@ -122,11 +125,22 @@ begin
       x := BinarySource[SourceOffset];
       inc(SourceOffset);
       Case X of
-        $05             : S := S + 'MOVW    AX,##'+Y.ToHexString(2)+'##';
-        $0B             : S := S + 'MOVW    sfrp['
+        $00             : S := S + 'NOP';
+        $05             : begin
+                            Case Y of
+                              $E2 : S := S + 'MOVW    AX,[DE+'+Y.ToHexString(2)+']';
+                              $E3 : S := S + 'MOVW    AX,[HL+'+Y.ToHexString(2)+']';
+                              $E6 : S := S + 'MOVW    [DE+'+Y.ToHexString(2)+'],AX';
+                              $E7 : S := S + 'MOVW    [HL+'+Y.ToHexString(2)+'],AX';
+                            else
+                              S := S + 'Unknown MOVW variant';
+                              Inc(Unknown);
+                            end;
+                          end;
+        $0B             : S := S + 'MOVW    [FF'
                                  + Y.ToHexString(2)
                                  +'],#'+ OpWord.ToHexString(4);
-        $60,$62,$64,$66 : S := S + 'MOVW    rp+['+Reg4[(X shr 1) AND 3]+'],'+OpWord.ToHexString(4);
+        $60,$62,$64,$66 : S := S + 'MOVW    '+Reg4[(X shr 1) AND 3]+',#'+OpWord.ToHexString(4);
         $8A             : begin
                             x2 := y;
                             S := S + 'SUB     '+Reg8[(x2 shr 4) AND 7]+','+Reg8[x2 AND 7];
@@ -216,7 +230,18 @@ begin
       S := SourceOffset.ToHexString(4)+ '     VECTOR:'+Addr.ToHexString(4);
     end;
   If S <> '' then
+  begin
+    while length(s) < 60 do
+      s := s + ' ';
+    s := s + ' ;';
+    while OldOffset < SourceOffset do
+    begin
+      S := S + ' ' + BinarySource[OldOffset].ToHexString(2);
+      inc(OldOffset);
+    end;
     Form1.Memo1.Append(S);
+  end;
+
 end;
 
 procedure Disassemble;
