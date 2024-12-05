@@ -43,9 +43,11 @@ type
 
 const
   MemSize = 65536;
-  Reg4 : Array[0..3] of String = ('AX','BC','DE','HL');
+  RP2  : Array[0..3] of String = ('AX','BC','DE','HL');
   Reg8 : Array[0..7] Of String = ('X','A','C','B','E','D','L','H');
   Mem1 : Array[0..1] of String = ('[DE]','[HL]');
+  MemShort : Array[0..5] of String = ('[DE+]','[HL+]','[DE-]','[HL-]','[DE]','[HL]');
+  R1   : Array[0..1] of String = ('C','B');
 
 var
   Form1: TForm1;
@@ -99,6 +101,40 @@ begin
 //  Form1.Memo1.Append(Name);
 end;
 
+Function JumpOffset8:String;
+var
+  Offset : Int8;
+  Destination : LongInt;
+begin
+  Offset := BinarySource[SourceOffset];
+  Inc(SourceOffset);
+  Destination := Sourceoffset + Offset;
+  JumpOffset8 := Destination.ToHexString(4);
+end;
+
+Function Saddr:String;
+var
+  Offset : LongInt;
+  Destination : LongInt;
+begin
+  Offset := BinarySource[SourceOffset];
+  Inc(SourceOffset);
+  Destination := $FE20 + Offset;
+  Saddr := Destination.ToHexString(4);
+end;
+
+Function Sfr:String;
+var
+  Offset : LongInt;
+  Destination : LongInt;
+begin
+  Offset := BinarySource[SourceOffset];
+  Inc(SourceOffset);
+  Destination := $FF00 + Offset;
+  Sfr := Destination.ToHexString(4);
+end;
+
+
 procedure Disassemble1; // disassemble the current instruction
 var
   x,x2 : byte;
@@ -126,6 +162,22 @@ begin
       inc(SourceOffset);
       Case X of
         $00             : S := S + 'NOP';
+        $03             : begin
+                            X2 := Y;
+                            Case X2 of
+                              $00..$07 : S := S + 'MOV1    CY,X.'+(X2 and 7).ToHexString(2);
+                              $08..$0F : S := S + 'MOV1    CY,A.'+(X2 and 7).ToHexString(2);
+                              $10..$17 : S := S + 'MOV1    X.'+(X2 and 7).ToHexString(2)+',CY';
+                              $18..$1F : S := S + 'MOV1    A.'+(X2 and 7).ToHexString(2)+',CY';
+                              $20..$27 : S := S + 'AND1    CY,X'+(X2 and 7).ToHexString(2);
+                              $28..$2F : S := S + 'AND1    CY,A'+(X2 and 7).ToHexString(2);
+                              $30..$37 : S := S + 'AND1    CY,/X'+(X2 and 7).ToHexString(2);
+                              $38..$3F : S := S + 'AND1    CY,/A'+(X2 and 7).ToHexString(2);
+                            else
+                              S := S + 'Unknown Bit Manipulation Instruction '+X2.ToHexString(2);
+                              Inc(Unknown);
+                            end;
+                          end;
         $05             : begin
                             Case Y of
                               $E2 : S := S + 'MOVW    AX,[DE+'+Y.ToHexString(2)+']';
@@ -137,83 +189,65 @@ begin
                               Inc(Unknown);
                             end;
                           end;
+        $08             : begin                     // condition branches
+                            X2 := Y;
+                            Case X2 of
+                              $A0..$A7 : S := S + 'BF      [FF'+Y.ToHexString(2)+'].'+(X2 and 7).ToHexString(2)+'  '+JumpOffset8;
+                            else
+                              S := S + 'Conditional branch '+X2.ToHexString(2);
+                              Inc(Unknown);
+                            end;
+
+                          end;
         $0B             : S := S + 'MOVW    [FF'
                                  + Y.ToHexString(2)
                                  +'],#'+ OpWord.ToHexString(4);
-        $60,$62,$64,$66 : S := S + 'MOVW    '+Reg4[(X shr 1) AND 3]+',#'+OpWord.ToHexString(4);
+        $14             : S := S + 'BR      '+JumpOffset8;
+        $26             : S := S + 'INC     [FF'+Y.ToHexString(2)+']';
+        $27             : S := S + 'DEC     [FF'+Y.ToHexString(2)+']';
+        $28             : S := S + 'CALL    '+OpWord.ToHexString(4);
+        $30             : begin
+                            x2 := y;
+                            Case (x2 shr 6) of
+                              0   : S := S + 'RORC    '+Reg8[X2 and 7]+','+((X2 shr 3) and 7).ToHexString(1);
+                              1   : S := S + 'ROR     '+Reg8[X2 and 7]+','+((X2 shr 3) and 7).ToHexString(1);
+                              2   : S := S + 'SHR     '+Reg8[X2 and 7]+','+((X2 shr 3) and 7).ToHexString(1);
+                              3   : S := S + 'SHRW    '+RP2[(X2 SHR 1) and 3]+((X2 shr 3) and 7).ToHexString(1);
+                            end;
+                          end;
+        $31             : begin
+                            x2 := y;
+                            Case (x2 shr 6) of
+                              0   : S := S + 'ROLC    '+Reg8[X2 and 7]+','+((X2 shr 3) and 7).ToHexString(1);
+                              1   : S := S + 'ROL     '+Reg8[X2 and 7]+','+((X2 shr 3) and 7).ToHexString(1);
+                              2   : S := S + 'SHL     '+Reg8[X2 and 7]+','+((X2 shr 3) and 7).ToHexString(1);
+                              3   : S := S + 'SHLW    '+RP2[(X2 SHR 1) and 3]+((X2 shr 3) and 7).ToHexString(1);
+                            end;
+                          end;
+        $32..$33        : S := S + 'DBNZ    '+R1[X and 1]+','+JumpOffset8;
+        $34..$37        : S := S + 'POP     '+RP2[X and 3];
+        $3C..$3F        : S := S + 'PUSH    '+RP2[X and 3];
+        $44..$47        : S := S + 'INCW    '+RP2[X and 3];
+        $4A             : S := S + 'DI';
+        $4B             : S := S + 'EI';
+        $4C..$4F        : S := S + 'DECW    '+RP2[X and 3];
+        $50..$55        : S := S + 'MOV     '+MemShort[X and 7]+',A';
+        $56             : S := S + 'RET';
+        $57             : S := S + 'RETI';
+        $58..$5D        : S := S + 'MOV     A,'+MemShort[X and 7];
+        $5E             : S := S + 'BRK';
+        $5F             : S := S + 'RETB';
+        $60,$62,$64,$66 : S := S + 'MOVW    '+RP2[(X shr 1) AND 3]+',#'+OpWord.ToHexString(4);
+//        $65             : S := S + '
+        $74..$77        : S := S + 'INCW    '+RP2[X and 3];
+        $A0..$A7        : S := S + 'CLR1    [FF'+Y.ToHexString(2)+'],'+(X and 7).ToHexString(1);
         $8A             : begin
                             x2 := y;
                             S := S + 'SUB     '+Reg8[(x2 shr 4) AND 7]+','+Reg8[x2 AND 7];
                           end;
         $B8..$BF        : S := S + 'MOV     '+Reg8[(X and 7)]+','+Y.ToHexString(2)+'h';
-
-    (*
-        $00 		: S := S + 'NOP';
-        $03 		: S := S + 'ADD     A,#'+Y.ToHexString(2)+'h';
-        $04,$24,$44,$64 	: S := S + 'JMP     '+ NiceAddress(((X SHR 5) SHL 8) + Y);
-        $07                 : S := S + 'DEC     A';
-        $08..$0a 		: S := S + 'IN      A,P' + (X and 3).ToHexString(1);
-        $10..$11  		: S := S + 'INC     @R'  +(X and $01).ToHexString(1);
-        $13 		: S := S + 'ADDC    A,#'+Y.ToHexString(2)+'h';
-        $14,$34,$54,$74 	: s := S + 'CALL    '+ NiceAddress(((X SHR 5) SHL 8) + Y);
-        $16 		: S := S + 'JTF     '+ NiceAddress(((SourceOffset-1) AND $ff00) OR Y);
-        $17                 : S := S + 'INC     A';
-        $18..$1f  		: S := S + 'INC     R'   +(X and $07).ToHexString(1);
-
-        $23 		: S := S + 'MOV     A,#'+Y.ToHexString(2)+'h';
-        $27                 : S := S + 'CLR     A';
-        $28..$2f  		: S := S + 'XCH     A,R'   +(X and $07).ToHexString(1);
-        $37                 : S := S + 'CMPL    A';
-
-        $39                 : S := S + 'OUTL    P1,A';
-        $3a                 : S := S + 'OUTL    P2,A';
-
-        $40..$41  		: S := S + 'ORL     A,@R'  +(X and $01).ToHexString(1);
-        $42                 : S := S + 'MOV     A,T';
-        $43 		: S := S + 'ORL     A,#'+Y.ToHexString(2)+'h';
-        $45                 : S := S + 'STRT    CNT';
-        $46 		: S := S + 'JNT1    '+ NiceAddress(((SourceOffset-1) AND $ff00) OR Y);
-        $47                 : S := S + 'SWAP    A';
-        $48..$4f  		: S := S + 'ORL     A,R'   +(X and $07).ToHexString(1);
-        $50..$51  		: S := S + 'ANL     A,@R'  +(X and $01).ToHexString(1);
-        $53 		: S := S + 'ANL     A,#'+Y.ToHexString(2)+'h';
-        $55                 : S := S + 'STRT    T';
-        $56 		: S := S + 'JT1     '+ NiceAddress(((SourceOffset-1) AND $ff00) OR Y);
-        $57                 : S := S + 'DA      A';
-        $58..$5f  		: S := S + 'ANL     A,R'   +(X and $07).ToHexString(1);
-        $60..$61  		: S := S + 'ADD     A,@R'  +(X and $01).ToHexString(1);
-        $62                 : S := S + 'MOV     T,A';
-
-        $65                 : S := S + 'STOP    TCNT';
-        $67                 : S := S + 'RRC     A';
-
-        $68..$6f  		: S := S + 'ADD     A,R'   +(X and $07).ToHexString(1);
-        $70..$71  		: S := S + 'ADDC    A,@R' +(X and $01).ToHexString(1);
-        $77                 : S := S + 'RR      A';
-        $78..$7f  		: S := S + 'ADDC    A,R'  +(X and $07).ToHexString(1);
-        $83                 : S := S + 'RET';
-
-        $90                 : S := S + 'OUTL    P0,A';
-        $96 		: S := S + 'JNZ     '+ NiceAddress(((SourceOffset-1) AND $ff00) OR Y);
-        $97                 : S := S + 'CLR     C';
-        $9c..$9f  		: S := S + 'ANLD    P' + ((X and $03)+4).ToHexString(1) + ',A';
-        $a0..$a1            : S := S + 'MOV     @R'+(X AND $01).ToHexString(1)+',A';
-        $a7                 : S := S + 'CPL     C';
-        $a8..$af  		: S := S + 'MOV     R'+(X and $07).ToHexString(1)+',A';
-        $b0..$b1            : S := S + 'MOV     @R'+(X and $01).ToHexString(1)+',#'+Y.ToHexString(2)+'h';
-        $b8..$bf  		: S := S + 'MOV     R'+(X AND $07).ToHexString(1)+',#'+Y.ToHexString(2)+'h';
-        $c6 		: S := S + 'JZ      '+ NiceAddress(((SourceOffset-1) AND $ff00) OR Y);
-        $d0..$d1  		: S := S + 'XRL     A,@R'+(X AND $01).ToHexString(1);
-        $d3                 : S := S + 'XRL     A,#'+Y.ToHexString(2)+'h';
-        $d8..$df  		: S := S + 'XRL     A,R'+(X and $07).ToHexString(1);
-        $e6 		: S := S + 'JNC     '+ NiceAddress(((SourceOffset-1) AND $ff00) OR Y);
-        $e7                 : S := S + 'RL      A';
-        $e8..$ef  		: S := S + 'DJNZ    R'+(X and $07).ToHexString(1)+','+ NiceAddress(((SourceOffset-1) AND $ff00) OR Y);
-        $f0..$f1  		: S := S + 'MOV     A,@R'+(X AND $01).ToHexString(1);
-        $f6 		: S := S + 'JC      '+ NiceAddress(((SourceOffset-1) AND $ff00) OR Y);
-        $f7                 : S := S + 'RLC     A';
-        $f8..$ff  		: S := S + 'MOV     A,R' +(X and $07).ToHexString(1);
-    *)
+        $C0..$C7        : S := S + 'INC     '+Reg8[(X and 7)];
+        $C8..$CF        : S := S + 'DEC     '+Reg8[(X and 7)];
       else
         S := S + '$'+x.ToHexString(2);
         Inc(unknown);
@@ -248,7 +282,8 @@ procedure Disassemble;
 var
   s : string;
 begin
-  Sourceoffset := $78BD;
+  If SourceOffset = 0 then
+    Sourceoffset := $78BD;
   unknown := 0;
   While (SourceOffset < SourceSize) AND (Unknown = 0) do
     Disassemble1;
@@ -345,6 +380,7 @@ begin
   end
   else
     StatusBar1.Panels[0].Text:='SRC: No File';
+  SourceOffset := 0;
 end;
 
 end.
