@@ -119,7 +119,10 @@ var
 begin
   Offset := BinarySource[SourceOffset];
   Inc(SourceOffset);
-  Destination := $FE20 + Offset;
+  If (Offset >= $20) then
+    Destination := $FE00 + Offset
+  else
+    Destination := $FF00 + Offset;
   Saddr := Destination.ToHexString(4);
 end;
 
@@ -179,33 +182,49 @@ begin
                             end;
                           end;
         $05             : begin
-                            Case Y of
-                              $E2 : S := S + 'MOVW    AX,[DE+'+Y.ToHexString(2)+']';
-                              $E3 : S := S + 'MOVW    AX,[HL+'+Y.ToHexString(2)+']';
-                              $E6 : S := S + 'MOVW    [DE+'+Y.ToHexString(2)+'],AX';
-                              $E7 : S := S + 'MOVW    [HL+'+Y.ToHexString(2)+'],AX';
+                            X2 := Y;
+                            Case X2 of
+                              $E2..$E3 : S := S + 'MOVW    AX,'+Mem1[X2 AND 1];
+                              $E6..$E7 : S := S + 'MOVW    '+Mem1[X2 AND 1]+',AX';
                             else
                               S := S + 'Unknown MOVW variant';
+                              Inc(Unknown);
+                            end;
+                          end;
+        $06             : begin
+                            X2 := Y;
+                            Case X2 of
+                              $A0 : S := S + 'MOV     [HL+0'+Y.ToHexString(2)+'h],A';
+                            else
+                              S := S + 'Unkown MOV[ ],A variant';
                               Inc(Unknown);
                             end;
                           end;
         $08             : begin                     // condition branches
                             X2 := Y;
                             Case X2 of
-                              $A0..$A7 : S := S + 'BF      [FF'+Y.ToHexString(2)+'].'+(X2 and 7).ToHexString(2)+'  '+JumpOffset8;
+                              $A0..$A7 : S := S + 'BF      ['+Saddr+'].'+(X2 and 7).ToHexString(2)+'  '+JumpOffset8;
                             else
                               S := S + 'Conditional branch '+X2.ToHexString(2);
                               Inc(Unknown);
                             end;
 
                           end;
-        $0B             : S := S + 'MOVW    [FF'
-                                 + Y.ToHexString(2)
-                                 +'],#'+ OpWord.ToHexString(4);
+        $0B             : S := S + 'MOVW    ['+Saddr+'],#'+ OpWord.ToHexString(4);
+        $11             : S := S + 'MOVW    AX,'+Saddr;
+        $13             : S := S + 'MOVW    '+Saddr+',AX';
         $14             : S := S + 'BR      '+JumpOffset8;
-        $26             : S := S + 'INC     [FF'+Y.ToHexString(2)+']';
-        $27             : S := S + 'DEC     [FF'+Y.ToHexString(2)+']';
+        $1A             : S := S + 'MOVW    ['+SFR+'],AX';
+        $1C             : S := S + 'MOVW    AX,['+SFR+']';
+        $24             : begin
+                            X2 := Y;
+                            S := S + 'MOVW    '+RP2[(X2 shr 5) AND 3] +','+RP2[(X2 shr 1) AND 3];
+                          end;
+        $26             : S := S + 'INC     ['+SFR+']';
+        $27             : S := S + 'DEC     ['+SFR+']';
         $28             : S := S + 'CALL    '+OpWord.ToHexString(4);
+        $2D             : S := S + 'ADDW    AX,#'+OpWord.ToHexString(4);
+        $2E             : S := S + 'SUBW    AX,#'+OpWord.ToHexString(4);
         $30             : begin
                             x2 := y;
                             Case (x2 shr 6) of
@@ -226,6 +245,7 @@ begin
                           end;
         $32..$33        : S := S + 'DBNZ    '+R1[X and 1]+','+JumpOffset8;
         $34..$37        : S := S + 'POP     '+RP2[X and 3];
+        $3A             : S := S + 'MOV     '+Saddr+',#'+Y.ToHexString(2);
         $3C..$3F        : S := S + 'PUSH    '+RP2[X and 3];
         $44..$47        : S := S + 'INCW    '+RP2[X and 3];
         $4A             : S := S + 'DI';
@@ -239,12 +259,17 @@ begin
         $5F             : S := S + 'RETB';
         $60,$62,$64,$66 : S := S + 'MOVW    '+RP2[(X shr 1) AND 3]+',#'+OpWord.ToHexString(4);
 //        $65             : S := S + '
-        $74..$77        : S := S + 'INCW    '+RP2[X and 3];
-        $A0..$A7        : S := S + 'CLR1    [FF'+Y.ToHexString(2)+'],'+(X and 7).ToHexString(1);
+        $70..$77        : S := S + 'BT      '+Saddr+'.'+(X and 7).ToHexString(1)+','+JumpOffset8;
+        $A0..$A7        : S := S + 'CLR1    '+Saddr+'.'+(X and 7).ToHexString(1);
         $8A             : begin
                             x2 := y;
-                            S := S + 'SUB     '+Reg8[(x2 shr 4) AND 7]+','+Reg8[x2 AND 7];
+                            Case X2 of
+                              $08,$0A,$0C,$0E : S := S + 'SUBW    AX,'+RP2[(x2 shr 1) AND 3];
+                            else
+                              S := S + 'SUB      '+Reg8[(x2 shr 4) AND 7]+','+Reg8[x2 AND 7];
+                            end;
                           end;
+        $B0..$B7        : S := S + 'SET1    '+Saddr+'.'+(X and 7).ToHexString(1);
         $B8..$BF        : S := S + 'MOV     '+Reg8[(X and 7)]+','+Y.ToHexString(2)+'h';
         $C0..$C7        : S := S + 'INC     '+Reg8[(X and 7)];
         $C8..$CF        : S := S + 'DEC     '+Reg8[(X and 7)];
