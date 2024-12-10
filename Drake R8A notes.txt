@@ -1,0 +1,52 @@
+Initial guess at Memory map
+
+0000-BFFF - EPROM
+C000-DFFF - EEPROM
+E000-E00F - Real Time Clock
+F000-F005 - Discrete I/O ports
+F000 - OUT - Bandwidth switching on 2nd IF board
+		  01 - BW S4
+		  02 - BW S3
+		  04 - BW S2
+		  08 - BW S1
+		  10 - BW INH
+		  20 - BW A
+		  40 - BW B
+		  80 - Scan FDBK
+F001 - OUT to 2nd IF board
+          01 - BFO Enable
+		  02 - AGC Speed
+		  04 - ACG Enable
+		  08 - Notch Enable
+		  10 - N/C
+		  20 - Timer Relay
+		  40 - FM Enable
+		  80 - Synch Detect
+F002 - OUT to Front end board
+		  01 - Preamp Enable
+		  02 - Attenuator Enable
+		  04 - VHF/HF
+		  08 - ANT 2/1
+		  10 - D3
+		  20 - D2
+		  40 - D1
+		  80 - D0
+F003 - OUT - D/A to Passband Tuning Control
+F004 - OUT from Keypad / Buttons
+		  01 - Row 1
+		  02 - Row 2
+		  04 - Row 3
+		  08 - Row 4
+		  10 - Row 5
+		  20 - Row 6
+		  40 - Row 7
+		  80 - From panel   LCD C/D
+F007 - In from Keypad / Buttons
+		  01 - Column 1
+		  02 - Column 2
+		  04 - Column 3
+		  08 - Column 4
+		  10 - Column 5
+		  20 - Column 6
+		  40 - From panel - LCD Busy
+		  80 - From VHF - Enable (1 when VHF converter is present)

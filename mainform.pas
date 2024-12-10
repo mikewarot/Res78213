@@ -13,6 +13,9 @@ type
   TForm1 = class(TForm)
     Button1: TButton;
     Button2: TButton;
+    ButtonLoadLabels: TButton;
+    ButtonSaveLabels: TButton;
+    EditAddress: TEdit;
     MainMenu1: TMainMenu;
     Memo1: TMemo;
     MenuItem1: TMenuItem;
@@ -20,17 +23,22 @@ type
     MenuHelpAbout: TMenuItem;
     MenuFileOpen: TMenuItem;
     MenuFileExit: TMenuItem;
+    MenuItem3: TMenuItem;
     Separator1: TMenuItem;
     OpenDialog1: TOpenDialog;
     StatusBar1: TStatusBar;
     LabelList: TValueListEditor;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure ButtonLoadLabelsClick(Sender: TObject);
+    procedure ButtonSaveLabelsClick(Sender: TObject);
+    procedure EditAddressChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuHelpAboutClick(Sender: TObject);
     procedure MenuFileExitClick(Sender: TObject);
     procedure MenuFileOpenClick(Sender: TObject);
+    procedure MenuSaveClick(Sender: TObject);
     procedure MenuOpenClick(Sender: TObject);
     procedure ValueListEditor1Click(Sender: TObject);
   private
@@ -225,6 +233,7 @@ begin
         $28             : S := S + 'CALL    '+OpWord.ToHexString(4);
         $2D             : S := S + 'ADDW    AX,#'+OpWord.ToHexString(4);
         $2E             : S := S + 'SUBW    AX,#'+OpWord.ToHexString(4);
+        $2F             : S := S + 'CMPW    AX,#'+OpWord.ToHexString(4);
         $30             : begin
                             x2 := y;
                             Case (x2 shr 6) of
@@ -260,6 +269,7 @@ begin
         $60,$62,$64,$66 : S := S + 'MOVW    '+RP2[(X shr 1) AND 3]+',#'+OpWord.ToHexString(4);
 //        $65             : S := S + '
         $70..$77        : S := S + 'BT      '+Saddr+'.'+(X and 7).ToHexString(1)+','+JumpOffset8;
+        $80             : S := S + 'BNZ     '+JumpOffset8;
         $A0..$A7        : S := S + 'CLR1    '+Saddr+'.'+(X and 7).ToHexString(1);
         $8A             : begin
                             x2 := y;
@@ -308,7 +318,7 @@ var
   s : string;
 begin
   If SourceOffset = 0 then
-    Sourceoffset := $78BD;
+    Sourceoffset := $7800;
   unknown := 0;
   While (SourceOffset < SourceSize) AND (Unknown = 0) do
     Disassemble1;
@@ -317,6 +327,7 @@ begin
     S := unknown.ToString +' unknown bytes';
     Form1.Memo1.Append(S);
   end;
+  Form1.EditAddress.Text := SourceOffset.ToHexString(4);
 end;
 
 procedure DumpAll;
@@ -378,6 +389,29 @@ begin
   DumpAll;
 end;
 
+procedure TForm1.ButtonLoadLabelsClick(Sender: TObject);
+begin
+  LabelList.LoadFromFile('labels.txt');
+end;
+
+procedure TForm1.ButtonSaveLabelsClick(Sender: TObject);
+begin
+  LabelList.SaveToFile('labels.txt');
+end;
+
+procedure TForm1.EditAddressChange(Sender: TObject);
+var
+  i : LongInt;
+  s : string;
+  err : Integer;
+begin
+  S := '$'+Form1.EditAddress.Text;
+  val(s,i,err);
+  if err = 0 then
+    SourceOffset := i;
+
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   FillChar(BinarySource,MemSize,0);
@@ -406,6 +440,11 @@ begin
   else
     StatusBar1.Panels[0].Text:='SRC: No File';
   SourceOffset := 0;
+end;
+
+procedure TForm1.MenuSaveClick(Sender: TObject);
+begin
+
 end;
 
 end.

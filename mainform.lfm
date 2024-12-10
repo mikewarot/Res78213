@@ -83,6 +83,33 @@ object Form1: TForm1
     TabOrder = 4
     OnClick = Button2Click
   end
+  object ButtonLoadLabels: TButton
+    Left = 408
+    Height = 25
+    Top = 424
+    Width = 176
+    Caption = 'Load Labels'
+    TabOrder = 5
+    OnClick = ButtonLoadLabelsClick
+  end
+  object ButtonSaveLabels: TButton
+    Left = 616
+    Height = 25
+    Top = 424
+    Width = 176
+    Caption = 'Save Labels'
+    TabOrder = 6
+    OnClick = ButtonSaveLabelsClick
+  end
+  object EditAddress: TEdit
+    Left = 37
+    Height = 29
+    Top = 412
+    Width = 211
+    TabOrder = 7
+    Text = 'EditAddress'
+    OnChange = EditAddressChange
+  end
   object OpenDialog1: TOpenDialog
     DefaultExt = '.*.bin'
     Left = 142
@@ -96,6 +123,10 @@ object Form1: TForm1
       object MenuFileOpen: TMenuItem
         Caption = '&Open'
         OnClick = MenuFileOpenClick
+      end
+      object MenuItem3: TMenuItem
+        Caption = 'Save'
+        OnClick = MenuSaveClick
       end
       object Separator1: TMenuItem
         Caption = '-'
