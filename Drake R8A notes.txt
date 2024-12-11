@@ -50,3 +50,18 @@ F007 - In from Keypad / Buttons
 		  20 - Column 6
 		  40 - From panel - LCD Busy
 		  80 - From VHF - Enable (1 when VHF converter is present)
+		  
+FD00 - FEFF - Internal RAM
+
+FEA4(V1), FEA8(V2) -- 32 bit virtual registers for math routines
+
+  V2 - V1 --> Compare_32Bits
+
+FF03 - Port 3
+FF23 - Port 3 MODE register
+
+P6.6 is serial CLOCK (not data, as in the middle of the schematic!)
+P6.7 is serial DATA
+
+0FE75 - wheel count - how many clicks the wheel has moved in the current direction
+

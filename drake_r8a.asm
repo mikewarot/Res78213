@@ -58,15 +58,15 @@ I2C_Output:
 0802: 9c b3        AND     A,I2C_OutputMask   ; how many bits remain, as a mask
 0804: af 00        CMP     A,#00H
 0806: 81 04        BZ      $080CH
-0808: b7 06        SET1    P6.7               ; Sets the "CLK" output
+0808: b7 06        SET1    P6.7               ; set DATA high
 080a: 14 02        BR      $080EH
-080c: a7 06        CLR1    P6.7               ; Clears the "CLK" output
+080c: a7 06        CLR1    P6.7               ; set DATA low
 080e: 20 b3        MOV     A,I2C_OutputMask
 0810: 30 89        SHR     A,1
 0812: 22 b3        MOV     I2C_OutputMask,A
-0814: b6 06        SET1    P6.6               ; Ouput a 1 on the data line
+0814: b6 06        SET1    P6.6               ; set the CLOCK high
 0816: 28 4b 60     CALL    Empty_Debug
-0819: a6 06        CLR1    P6.6               ; turn the data like back off before clocking???
+0819: a6 06        CLR1    P6.6               ; set the CLOCK low
 081b: 6f b3 00     CMP     I2C_OutputMask,#00H
 081e: 80 e0        BNZ     I2C_Output
 0820: a7 06        CLR1    P6.7
@@ -113,7 +113,7 @@ Weird_Stack_Thing:
 0863: 81 e7        BZ      $084CH
 0865: 06 20 06     MOV     A,[HL+06H]
 0868: 22 a6        MOV     0FEA6H,A
-086a: 91 5e        CALLF   !095EH
+086a: 91 5e        CALLF   Serial_Output_Thing
 086c: 60 14 00     MOVW    AX,#0014H
 086f: 3c           PUSH    AX
 0870: 28 6d 8b     CALL    Delay_Loop
@@ -139,6 +139,7 @@ Weird_Stack_Thing:
 0895: 34           POP     AX
 0896: 37           POP     HL
 0897: 56           RET
+Interpret_Thing:
 0898: 3f           PUSH    HL
 0899: 05 c9        DECW    SP
 089b: 05 c9        DECW    SP
@@ -163,11 +164,12 @@ Weird_Stack_Thing:
 08bb: 34           POP     AX
 08bc: 37           POP     HL
 08bd: 56           RET
+Puzzle_Piece1:
 08be: 3f           PUSH    HL
 08bf: 11 fc        MOVW    AX,SP
 08c1: 24 68        MOVW    HL,AX
 08c3: 90 23        CALLF   !Set_HiBit
-08c5: 28 7c 60     CALL    !607CH
+08c5: 28 7c 60     CALL    LCD1_Activate
 08c8: b9 e0        MOV     A,#0E0H
 08ca: 06 2e 04     OR      A,[HL+04H]
 08cd: b8 00        MOV     X,#00H
@@ -182,7 +184,7 @@ Weird_Stack_Thing:
 08d9: 11 fc        MOVW    AX,SP
 08db: 24 68        MOVW    HL,AX
 08dd: 90 23        CALLF   !Set_HiBit
-08df: 28 85 60     CALL    !6085H
+08df: 28 85 60     CALL    LCD2_Activate
 08e2: b9 e0        MOV     A,#0E0H
 08e4: 06 2e 04     OR      A,[HL+04H]
 08e7: b8 00        MOV     X,#00H
@@ -205,7 +207,7 @@ Weird_Stack_Thing:
 0904: 24 48        MOVW    DE,AX
 0906: 05 e2        MOVW    AX,[DE]
 0908: 3c           PUSH    AX
-0909: 90 98        CALLF   !0898H
+0909: 90 98        CALLF   !Interpret_Thing
 090b: 34           POP     AX
 090c: 37           POP     HL
 090d: 56           RET
@@ -224,7 +226,7 @@ Weird_Stack_Thing:
 0925: 28 2d 6f     CALL    !6F2DH
 0928: 34           POP     AX
 0929: 3d           PUSH    BC
-092a: 90 98        CALLF   !0898H
+092a: 90 98        CALLF   !Interpret_Thing
 092c: 34           POP     AX
 092d: 37           POP     HL
 092e: 56           RET
@@ -256,6 +258,7 @@ Weird_Stack_Thing:
 0959: 34           POP     AX
 095a: 6c 06 f8     AND     P6,#0F8H
 095d: 56           RET
+Serial_Output_Thing:
 095e: 1c ac        MOVW    AX,0FEACH
 0960: 3c           PUSH    AX
 0961: 3a ac 80     MOV     0FEACH,#80H
@@ -269,7 +272,7 @@ Weird_Stack_Thing:
 0972: 20 ac        MOV     A,0FEACH
 0974: 30 89        SHR     A,1
 0976: 22 ac        MOV     0FEACH,A
-0978: 28 84 8b     CALL    !8B84H
+0978: 28 84 8b     CALL    Cycle_Serial_Clock
 097b: 6f ac 00     CMP     0FEACH,#00H
 097e: 80 e4        BNZ     $0964H
 0980: 34           POP     AX
@@ -285,7 +288,7 @@ Weird_Stack_Thing:
 0992: 20 b3        MOV     A,I2C_OutputMask
 0994: 30 89        SHR     A,1
 0996: 22 b3        MOV     I2C_OutputMask,A
-0998: 28 84 8b     CALL    !8B84H
+0998: 28 84 8b     CALL    Cycle_Serial_Clock
 099b: 6f b3 00     CMP     I2C_OutputMask,#00H
 099e: 80 e4        BNZ     $0984H
 09a0: 56           RET
@@ -667,7 +670,7 @@ Weird_Stack_Thing:
 128c: 3c           PUSH    AX
 128d: 28 6d 8b     CALL    Delay_Loop
 1290: 34           POP     AX
-1291: 28 ce 7a     CALL    !7ACEH
+1291: 28 ce 7a     CALL    Query_DFBE
 1294: 1c 63        MOVW    AX,0FE63H
 1296: 3c           PUSH    AX
 1297: 60 80 df     MOVW    AX,#0DF80H
@@ -1797,7 +1800,7 @@ Weird_Stack_Thing:
 1d0a: 3a 7f 00     MOV     0FE7FH,#00H
 1d0d: 2c 08 14     BR      !1408H
 1d10: 2c 95 1e     BR      !1E95H
-1d13: 28 98 1e     CALL    !1E98H
+1d13: 28 98 1e     CALL    Send_Table_2a   ; !1E98H
 1d16: 8a 08        SUBW    AX,AX
 1d18: 8f 0a        CMPW    AX,BC
 1d1a: 81 06        BZ      $1D22H
@@ -1945,12 +1948,16 @@ Weird_Stack_Thing:
 1e95: 34           POP     AX
 1e96: 37           POP     HL
 1e97: 56           RET
-1e98: 14 0c        BR      $1EA6H
+Send_Table2a:
+1e98: 14 0c        BR      Send_Table2    ; $1EA6H
+Send1:
 1e9a: 62 01 00     MOVW    BC,#0001H
-1e9d: 14 4b        BR      $1EEAH
+1e9d: 14 4b        BR      Send_Done
+Send0:
 1e9f: 62 00 00     MOVW    BC,#0000H
-1ea2: 14 46        BR      $1EEAH
-1ea4: 14 44        BR      $1EEAH
+1ea2: 14 46        BR      Send_Done
+1ea4: 14 44        BR      Send_Done
+Send_Table2:
 1ea6: 20 74        MOV     A,0FE74H
 1ea8: af 07        CMP     A,#07H
 1eaa: 83 f3        BC      $1E9FH
@@ -1961,30 +1968,14 @@ Weird_Stack_Thing:
 1eb4: d8           XCH     A,X
 1eb5: b9 00        MOV     A,#00H
 1eb7: 88 08        ADDW    AX,AX
-1eb9: 2d c2 1e     ADDW    AX,#1EC2H
+1eb9: 2d c2 1e     ADDW    AX,@Table2
 1ebc: 24 48        MOVW    DE,AX
 1ebe: 05 e2        MOVW    AX,[DE]
 1ec0: 05 48        BR      AX
-1ec2: 9a 1e        SUB     A,0FF1EH
-1ec4: 9a 1e        SUB     A,0FF1EH
-1ec6: 9a 1e        SUB     A,0FF1EH
-1ec8: 9f 1e        CMP     A,0FF1EH
-1eca: 9f 1e        CMP     A,0FF1EH
-1ecc: 9f 1e        CMP     A,0FF1EH
-1ece: 9a 1e        SUB     A,0FF1EH
-1ed0: 9a 1e        SUB     A,0FF1EH
-1ed2: 9a 1e        SUB     A,0FF1EH
-1ed4: 9f 1e        CMP     A,0FF1EH
-1ed6: 9f 1e        CMP     A,0FF1EH
-1ed8: 9f 1e        CMP     A,0FF1EH
-1eda: 9a 1e        SUB     A,0FF1EH
-1edc: 9a 1e        SUB     A,0FF1EH
-1ede: 9a 1e        SUB     A,0FF1EH
-1ee0: 9f 1e        CMP     A,0FF1EH
-1ee2: 9f 1e        CMP     A,0FF1EH
-1ee4: 9f 1e        CMP     A,0FF1EH
-1ee6: 9f 1e        CMP     A,0FF1EH
-1ee8: 9a 1e        SUB     A,0FF1EH
+Table2:
+      DW           Send1,Send1,Send1,Send0,Send0,Send0
+	  DW           Send1,Send1,Send1,Send0,Send0,Send0
+	  DW           Send1,Send1,Send1,Send0,Send0,Send0,Send1
 1eea: 56           RET
 1eeb: 2c b2 1f     BR      !1FB2H
 1eee: 08 a5 65 07  BF      0FE65H.5,$1EF9H
@@ -2801,7 +2792,7 @@ Decimal_Subtract:
 25da: 3c           PUSH    AX
 25db: 28 6d 8b     CALL    Delay_Loop
 25de: 34           POP     AX
-25df: 28 ce 7a     CALL    !7ACEH
+25df: 28 ce 7a     CALL    Query_DFBE
 25e2: 64 bd df     MOVW    DE,#0DFBDH
 25e5: 70 a1 05     BT      0FEA1H.0,$25EDH
 25e8: 60 01 00     MOVW    AX,#0001H
@@ -2908,7 +2899,7 @@ Decimal_Subtract:
 26a1: 3c           PUSH    AX
 26a2: 28 6d 8b     CALL    Delay_Loop
 26a5: 34           POP     AX
-26a6: 28 ce 7a     CALL    !7ACEH
+26a6: 28 ce 7a     CALL    Query_DFBE
 26a9: 60 f4 df     MOVW    AX,#0DFF4H
 26ac: 44           INCW    AX
 26ad: 06 a0 01     MOV     [HL+01H],A
@@ -3884,7 +3875,7 @@ Decimal_Subtract:
 2ebf: 28 43 8b     CALL    !8B43H
 2ec2: 34           POP     AX
 2ec3: 4a           DI
-2ec4: 28 ce 7a     CALL    !7ACEH
+2ec4: 28 ce 7a     CALL    Query_DFBE
 2ec7: 64 55 d5     MOVW    DE,#0D555H
 2eca: b9 aa        MOV     A,#0AAH
 2ecc: 54           MOV     [DE],A
@@ -4213,7 +4204,7 @@ Decimal_Subtract:
 31ac: 28 43 8b     CALL    !8B43H
 31af: 34           POP     AX
 31b0: 4a           DI
-31b1: 28 ce 7a     CALL    !7ACEH
+31b1: 28 ce 7a     CALL    Query_DFBE
 31b4: 64 55 d5     MOVW    DE,#0D555H
 31b7: b9 aa        MOV     A,#0AAH
 31b9: 54           MOV     [DE],A
@@ -4286,7 +4277,7 @@ Decimal_Subtract:
 3245: 28 43 8b     CALL    !8B43H
 3248: 34           POP     AX
 3249: 4a           DI
-324a: 28 ce 7a     CALL    !7ACEH
+324a: 28 ce 7a     CALL    Query_DFBE
 324d: 64 55 d5     MOVW    DE,#0D555H
 3250: b9 aa        MOV     A,#0AAH
 3252: 54           MOV     [DE],A
@@ -4338,7 +4329,7 @@ Decimal_Subtract:
 32b4: 3c           PUSH    AX
 32b5: 28 6d 8b     CALL    Delay_Loop
 32b8: 34           POP     AX
-32b9: 28 ce 7a     CALL    !7ACEH
+32b9: 28 ce 7a     CALL    Query_DFBE
 32bc: 64 55 d5     MOVW    DE,#0D555H
 32bf: b9 aa        MOV     A,#0AAH
 32c1: 54           MOV     [DE],A
@@ -4959,9 +4950,9 @@ Power_Pressed:
 3811: 28 43 7d     CALL    !7D43H
 3814: 14 0b        BR      $3821H
 3816: 08 a5 69 03  BF      0FE69H.5,$381DH
-381a: 3a 75 00     MOV     0FE75H,#00H
+381a: 3a 75 00     MOV     Wheel_Count,#00H
 381d: a5 69        CLR1    0FE69H.5
-381f: 26 75        INC     0FE75H
+381f: 26 75        INC     Wheel_Count
 3821: 28 16 20     CALL    !2016H
 3824: 2c 0a 46     BR      !460AH
 3827: 2c ab 38     BR      !38ABH
@@ -5402,7 +5393,7 @@ Power_Pressed:
 3c0f: 3c           PUSH    AX
 3c10: 28 6d 8b     CALL    Delay_Loop
 3c13: 34           POP     AX
-3c14: 28 ce 7a     CALL    !7ACEH
+3c14: 28 ce 7a     CALL    Query_DFBE
 3c17: 64 55 d5     MOVW    DE,#0D555H
 3c1a: b9 aa        MOV     A,#0AAH
 3c1c: 54           MOV     [DE],A
@@ -5423,7 +5414,7 @@ Power_Pressed:
 3c37: 3c           PUSH    AX
 3c38: 28 6d 8b     CALL    Delay_Loop
 3c3b: 34           POP     AX
-3c3c: 28 ce 7a     CALL    !7ACEH
+3c3c: 28 ce 7a     CALL    Query_DFBE
 3c3f: 3a 6b 00     MOV     0FE6BH,#00H
 3c42: 26 af        INC     0FEAFH
 3c44: 14 08        BR      $3C4EH
@@ -6277,9 +6268,9 @@ Power_Pressed:
 4400: 28 43 7d     CALL    !7D43H
 4403: 14 0a        BR      $440FH
 4405: 75 69 03     BT      0FE69H.5,$440BH
-4408: 3a 75 00     MOV     0FE75H,#00H
+4408: 3a 75 00     MOV     Wheel_Count,#00H
 440b: b5 69        SET1    0FE69H.5
-440d: 26 75        INC     0FE75H
+440d: 26 75        INC     Wheel_Count
 440f: 28 16 20     CALL    !2016H
 4412: 2c 0a 46     BR      !460AH
 4415: 14 61        BR      $4478H
@@ -6290,7 +6281,7 @@ Power_Pressed:
 4423: 3c           PUSH    AX
 4424: 28 6d 8b     CALL    Delay_Loop
 4427: 34           POP     AX
-4428: 28 ce 7a     CALL    !7ACEH
+4428: 28 ce 7a     CALL    Query_DFBE
 442b: 1c 63        MOVW    AX,0FE63H
 442d: 3c           PUSH    AX
 442e: 60 80 df     MOVW    AX,#0DF80H
@@ -6310,7 +6301,7 @@ Power_Pressed:
 4451: 3c           PUSH    AX
 4452: 28 6d 8b     CALL    Delay_Loop
 4455: 34           POP     AX
-4456: 28 ce 7a     CALL    !7ACEH
+4456: 28 ce 7a     CALL    Query_DFBE
 4459: 1c 63        MOVW    AX,0FE63H
 445b: 3c           PUSH    AX
 445c: 60 80 df     MOVW    AX,#0DF80H
@@ -8525,7 +8516,7 @@ Read_RTC_Seconds:
 56db: 3c           PUSH    AX
 56dc: 28 6d 8b     CALL    Delay_Loop
 56df: 34           POP     AX
-56e0: 28 ce 7a     CALL    !7ACEH
+56e0: 28 ce 7a     CALL    Query_DFBE
 56e3: 64 f1 df     MOVW    DE,#0DFF1H
 56e6: 5c           MOV     A,[DE]
 56e7: 22 6a        MOV     0FE6AH,A
@@ -8551,7 +8542,7 @@ Read_RTC_Seconds:
 571e: 3c           PUSH    AX
 571f: 28 6d 8b     CALL    Delay_Loop
 5722: 34           POP     AX
-5723: 28 ce 7a     CALL    !7ACEH
+5723: 28 ce 7a     CALL    Query_DFBE
 5726: 60 f1 df     MOVW    AX,#0DFF1H
 5729: 44           INCW    AX
 572a: 24 48        MOVW    DE,AX
@@ -8614,7 +8605,7 @@ Read_RTC_Seconds:
 57be: 3c           PUSH    AX
 57bf: 28 6d 8b     CALL    Delay_Loop
 57c2: 34           POP     AX
-57c3: 28 ce 7a     CALL    !7ACEH
+57c3: 28 ce 7a     CALL    Query_DFBE
 57c6: 64 f3 df     MOVW    DE,#0DFF3H
 57c9: 5c           MOV     A,[DE]
 57ca: 22 6a        MOV     0FE6AH,A
@@ -8926,7 +8917,7 @@ Read_RTC_Seconds:
 5a8e: 3c           PUSH    AX
 5a8f: 28 6d 8b     CALL    Delay_Loop
 5a92: 34           POP     AX
-5a93: 28 ce 7a     CALL    !7ACEH
+5a93: 28 ce 7a     CALL    Query_DFBE
 5a96: 64 f4 df     MOVW    DE,#0DFF4H
 5a99: 06 00 04     MOV     A,[DE+04H]
 5a9c: d8           XCH     A,X
@@ -8971,7 +8962,7 @@ Read_RTC_Seconds:
 5af9: 3c           PUSH    AX
 5afa: 28 6d 8b     CALL    Delay_Loop
 5afd: 34           POP     AX
-5afe: 28 ce 7a     CALL    !7ACEH
+5afe: 28 ce 7a     CALL    Query_DFBE
 5b01: 64 fa df     MOVW    DE,#0DFFAH
 5b04: 06 00 04     MOV     A,[DE+04H]
 5b07: d8           XCH     A,X
@@ -9653,11 +9644,13 @@ Empty_Debug:
 6077: 06 80 03     MOV     [DE+03H],A
 607a: 37           POP     HL
 607b: 56           RET
+LCD1_Activate:
 607c: 20 06        MOV     A,P6
 607e: ac f8        AND     A,#0F8H
 6080: ae 01        OR      A,#01H
 6082: 22 06        MOV     P6,A
 6084: 56           RET
+LCD2_Activate:
 6085: 20 06        MOV     A,P6
 6087: ac f8        AND     A,#0F8H
 6089: ae 02        OR      A,#02H
@@ -9671,7 +9664,7 @@ Empty_Debug:
 6099: 34           POP     AX
 609a: 60 00 00     MOVW    AX,#0000H
 609d: 3c           PUSH    AX
-609e: 90 be        CALLF   !08BEH
+609e: 90 be        CALLF   Puzzle_Piece1
 60a0: 34           POP     AX
 60a1: 60 ff 00     MOVW    AX,#00FFH
 60a4: 3c           PUSH    AX
@@ -9707,9 +9700,9 @@ Empty_Debug:
 60dc: 06 20 04     MOV     A,[HL+04H]
 60df: af 01        CMP     A,#01H
 60e1: 80 05        BNZ     $60E8H
-60e3: 28 7c 60     CALL    !607CH
+60e3: 28 7c 60     CALL    LCD1_Activate
 60e6: 14 03        BR      $60EBH
-60e8: 28 85 60     CALL    !6085H
+60e8: 28 85 60     CALL    LCD2_Activate
 60eb: 60 42 00     MOVW    AX,#0042H
 60ee: 3c           PUSH    AX
 60ef: 90 3b        CALLF   !Weird_Stack_Thing
@@ -9748,12 +9741,12 @@ Empty_Debug:
 612b: 37           POP     HL
 612c: 56           RET
 612d: 90 23        CALLF   !Set_HiBit
-612f: 28 7c 60     CALL    !607CH
+612f: 28 7c 60     CALL    LCD1_Activate
 6132: 60 20 00     MOVW    AX,#0020H
 6135: 3c           PUSH    AX
 6136: 90 3b        CALLF   !Weird_Stack_Thing
 6138: 34           POP     AX
-6139: 28 85 60     CALL    !6085H
+6139: 28 85 60     CALL    LCD2_Activate
 613c: 60 20 00     MOVW    AX,#0020H
 613f: 3c           PUSH    AX
 6140: 90 3b        CALLF   !Weird_Stack_Thing
@@ -9763,7 +9756,7 @@ Empty_Debug:
 6147: 3c           PUSH    AX
 6148: 28 6d 8b     CALL    Delay_Loop
 614b: 34           POP     AX
-614c: 28 ce 7a     CALL    !7ACEH
+614c: 28 ce 7a     CALL    Query_DFBE
 614f: 08 a1 66 03  BF      0FE66H.1,$6156H
 6153: 2c 05 62     BR      !6205H
 6156: a2 68        CLR1    0FE68H.2
@@ -9775,7 +9768,7 @@ Empty_Debug:
 6163: 28 19 69     CALL    !6919H
 6166: 60 00 00     MOVW    AX,#0000H
 6169: 3c           PUSH    AX
-616a: 90 be        CALLF   !08BEH
+616a: 90 be        CALLF   Puzzle_Piece1
 616c: 34           POP     AX
 616d: 08 a1 72 06  BF      0FE72H.1,$6177H
 6171: 28 2f 70     CALL    !702FH
@@ -10306,7 +10299,7 @@ Empty_Debug:
 6613: 34           POP     AX
 6614: 60 1c 00     MOVW    AX,#001CH
 6617: 3c           PUSH    AX
-6618: 90 be        CALLF   !08BEH
+6618: 90 be        CALLF   Puzzle_Piece1
 661a: 34           POP     AX
 661b: 90 23        CALLF   !Set_HiBit
 661d: 60 bf 00     MOVW    AX,#00BFH
@@ -10340,7 +10333,7 @@ Empty_Debug:
 6659: 34           POP     AX
 665a: 60 1c 00     MOVW    AX,#001CH
 665d: 3c           PUSH    AX
-665e: 90 be        CALLF   !08BEH
+665e: 90 be        CALLF   Puzzle_Piece1
 6660: 34           POP     AX
 6661: 90 23        CALLF   !Set_HiBit
 6663: 60 90 00     MOVW    AX,#0090H
@@ -10362,7 +10355,7 @@ Empty_Debug:
 6681: 24 48        MOVW    DE,AX
 6683: 05 e2        MOVW    AX,[DE]
 6685: 3c           PUSH    AX
-6686: 90 98        CALLF   !0898H
+6686: 90 98        CALLF   !Interpret_Thing
 6688: 34           POP     AX
 6689: 37           POP     HL
 668a: 56           RET
@@ -10386,7 +10379,7 @@ Empty_Debug:
 66a7: 4a           DI
 66a8: 60 00 00     MOVW    AX,#0000H
 66ab: 3c           PUSH    AX
-66ac: 90 be        CALLF   !08BEH
+66ac: 90 be        CALLF   Puzzle_Piece1
 66ae: 34           POP     AX
 66af: 60 00 00     MOVW    AX,#0000H
 66b2: 3c           PUSH    AX
@@ -10399,7 +10392,7 @@ Empty_Debug:
 66bd: 28 d7 6d     CALL    !6DD7H
 66c0: 60 00 00     MOVW    AX,#0000H
 66c3: 3c           PUSH    AX
-66c4: 90 be        CALLF   !08BEH
+66c4: 90 be        CALLF   Puzzle_Piece1
 66c6: 34           POP     AX
 66c7: 08 a1 67 13  BF      0FE67H.1,$66DEH
 66cb: 1c 63        MOVW    AX,0FE63H
@@ -10440,11 +10433,11 @@ Empty_Debug:
 6706: 08 a4 67 0e  BF      0FE67H.4,$6718H
 670a: 8a 08        SUBW    AX,AX
 670c: 3c           PUSH    AX
-670d: 90 98        CALLF   !0898H
+670d: 90 98        CALLF   !Interpret_Thing
 670f: 34           POP     AX
 6710: 8a 08        SUBW    AX,AX
 6712: 3c           PUSH    AX
-6713: 90 98        CALLF   !0898H
+6713: 90 98        CALLF   !Interpret_Thing
 6715: 34           POP     AX
 6716: 14 33        BR      $674BH
 6718: 20 8d        MOV     A,0FE8DH
@@ -10474,7 +10467,7 @@ Empty_Debug:
 6742: 14 03        BR      $6747H
 6744: 60 52 00     MOVW    AX,#0052H
 6747: 3c           PUSH    AX
-6748: 90 98        CALLF   !0898H
+6748: 90 98        CALLF   !Interpret_Thing
 674a: 34           POP     AX
 674b: 14 45        BR      $6792H
 674d: 20 8f        MOV     A,0FE8FH
@@ -10536,7 +10529,7 @@ Empty_Debug:
 67ae: 4a           DI
 67af: 60 00 00     MOVW    AX,#0000H
 67b2: 3c           PUSH    AX
-67b3: 90 be        CALLF   !08BEH
+67b3: 90 be        CALLF   Puzzle_Piece1
 67b5: 34           POP     AX
 67b6: 60 00 00     MOVW    AX,#0000H
 67b9: 3c           PUSH    AX
@@ -10548,31 +10541,31 @@ Empty_Debug:
 67c3: 4b           EI
 67c4: 60 08 00     MOVW    AX,#0008H
 67c7: 3c           PUSH    AX
-67c8: 90 be        CALLF   !08BEH
+67c8: 90 be        CALLF   Puzzle_Piece1
 67ca: 34           POP     AX
 67cb: 08 a7 a1 09  BF      0FEA1H.7,$67D8H
 67cf: 60 90 00     MOVW    AX,#0090H
 67d2: 3c           PUSH    AX
-67d3: 90 98        CALLF   !0898H
+67d3: 90 98        CALLF   !Interpret_Thing
 67d5: 34           POP     AX
 67d6: 14 07        BR      $67DFH
 67d8: 60 40 02     MOVW    AX,#0240H
 67db: 3c           PUSH    AX
-67dc: 90 98        CALLF   !0898H
+67dc: 90 98        CALLF   !Interpret_Thing
 67de: 34           POP     AX
 67df: 60 10 00     MOVW    AX,#0010H
 67e2: 3c           PUSH    AX
-67e3: 90 be        CALLF   !08BEH
+67e3: 90 be        CALLF   Puzzle_Piece1
 67e5: 34           POP     AX
 67e6: 08 a6 a1 09  BF      0FEA1H.6,$67F3H
 67ea: 60 50 9a     MOVW    AX,#9A50H
 67ed: 3c           PUSH    AX
-67ee: 90 98        CALLF   !0898H
+67ee: 90 98        CALLF   !Interpret_Thing
 67f0: 34           POP     AX
 67f1: 14 07        BR      $67FAH
 67f3: 60 40 02     MOVW    AX,#0240H
 67f6: 3c           PUSH    AX
-67f7: 90 98        CALLF   !0898H
+67f7: 90 98        CALLF   !Interpret_Thing
 67f9: 34           POP     AX
 67fa: 60 15 00     MOVW    AX,#0015H
 67fd: 3c           PUSH    AX
@@ -10606,7 +10599,7 @@ Empty_Debug:
 6837: 2c eb 68     BR      !68EBH
 683a: 60 00 00     MOVW    AX,#0000H
 683d: 3c           PUSH    AX
-683e: 90 be        CALLF   !08BEH
+683e: 90 be        CALLF   Puzzle_Piece1
 6840: 34           POP     AX
 6841: 64 bd df     MOVW    DE,#0DFBDH
 6844: 70 a1 05     BT      0FEA1H.0,$684CH
@@ -10654,49 +10647,49 @@ Empty_Debug:
 6892: 14 03        BR      $6897H
 6894: 60 52 00     MOVW    AX,#0052H
 6897: 3c           PUSH    AX
-6898: 90 98        CALLF   !0898H
+6898: 90 98        CALLF   !Interpret_Thing
 689a: 34           POP     AX
 689b: 28 ae 6c     CALL    !6CAEH
 689e: 14 4b        BR      $68EBH
 68a0: 60 50 1b     MOVW    AX,#1B50H
 68a3: 3c           PUSH    AX
-68a4: 90 98        CALLF   !0898H
+68a4: 90 98        CALLF   !Interpret_Thing
 68a6: 34           POP     AX
 68a7: 60 94 0d     MOVW    AX,#0D94H
 68aa: 3c           PUSH    AX
 68ab: 28 2d 6f     CALL    !6F2DH
 68ae: 34           POP     AX
 68af: 3d           PUSH    BC
-68b0: 90 98        CALLF   !0898H
+68b0: 90 98        CALLF   !Interpret_Thing
 68b2: 34           POP     AX
 68b3: 60 54 1b     MOVW    AX,#1B54H
 68b6: 3c           PUSH    AX
-68b7: 90 98        CALLF   !0898H
+68b7: 90 98        CALLF   !Interpret_Thing
 68b9: 34           POP     AX
 68ba: 60 00 89     MOVW    AX,#8900H
 68bd: 3c           PUSH    AX
 68be: 28 2d 6f     CALL    !6F2DH
 68c1: 34           POP     AX
 68c2: 3d           PUSH    BC
-68c3: 90 98        CALLF   !0898H
+68c3: 90 98        CALLF   !Interpret_Thing
 68c5: 34           POP     AX
 68c6: 60 90 99     MOVW    AX,#9990H
 68c9: 3c           PUSH    AX
-68ca: 90 98        CALLF   !0898H
+68ca: 90 98        CALLF   !Interpret_Thing
 68cc: 34           POP     AX
 68cd: 60 c0 93     MOVW    AX,#93C0H
 68d0: 3c           PUSH    AX
 68d1: 28 2d 6f     CALL    !6F2DH
 68d4: 34           POP     AX
 68d5: 3d           PUSH    BC
-68d6: 90 98        CALLF   !0898H
+68d6: 90 98        CALLF   !Interpret_Thing
 68d8: 34           POP     AX
 68d9: 70 a1 05     BT      0FEA1H.0,$68E1H
 68dc: 60 00 03     MOVW    AX,#0300H
 68df: 14 03        BR      $68E4H
 68e1: 60 52 00     MOVW    AX,#0052H
 68e4: 3c           PUSH    AX
-68e5: 90 98        CALLF   !0898H
+68e5: 90 98        CALLF   !Interpret_Thing
 68e7: 34           POP     AX
 68e8: 28 d7 6d     CALL    !6DD7H
 68eb: 34           POP     AX
@@ -10814,7 +10807,7 @@ Empty_Debug:
 69b7: 28 2d 6f     CALL    !6F2DH
 69ba: 34           POP     AX
 69bb: 3d           PUSH    BC
-69bc: 90 98        CALLF   !0898H
+69bc: 90 98        CALLF   !Interpret_Thing
 69be: 34           POP     AX
 69bf: 14 12        BR      $69D3H
 69c1: 20 6d        MOV     A,0FE6DH
@@ -10825,7 +10818,7 @@ Empty_Debug:
 69cb: 24 48        MOVW    DE,AX
 69cd: 05 e2        MOVW    AX,[DE]
 69cf: 3c           PUSH    AX
-69d0: 90 98        CALLF   !0898H
+69d0: 90 98        CALLF   !Interpret_Thing
 69d2: 34           POP     AX
 69d3: 26 6c        INC     0FE6CH
 69d5: 05 e3        MOVW    AX,[HL]
@@ -10891,7 +10884,7 @@ Empty_Debug:
 6a4a: 80 08        BNZ     $6A54H
 6a4c: 8a 08        SUBW    AX,AX
 6a4e: 3c           PUSH    AX
-6a4f: 90 98        CALLF   !0898H
+6a4f: 90 98        CALLF   !Interpret_Thing
 6a51: 34           POP     AX
 6a52: 14 09        BR      $6A5DH
 6a54: 20 ac        MOV     A,0FEACH
@@ -10960,7 +10953,7 @@ Empty_Debug:
 6abc: 81 08        BZ      $6AC6H
 6abe: 8a 08        SUBW    AX,AX
 6ac0: 3c           PUSH    AX
-6ac1: 90 98        CALLF   !0898H
+6ac1: 90 98        CALLF   !Interpret_Thing
 6ac3: 34           POP     AX
 6ac4: 14 11        BR      $6AD7H
 6ac6: 1c 63        MOVW    AX,0FE63H
@@ -10986,7 +10979,7 @@ Empty_Debug:
 6aeb: 80 08        BNZ     $6AF5H
 6aed: 8a 08        SUBW    AX,AX
 6aef: 3c           PUSH    AX
-6af0: 90 98        CALLF   !0898H
+6af0: 90 98        CALLF   !Interpret_Thing
 6af2: 34           POP     AX
 6af3: 14 09        BR      $6AFEH
 6af5: 20 ac        MOV     A,0FEACH
@@ -11029,7 +11022,7 @@ Empty_Debug:
 6b43: 80 08        BNZ     $6B4DH
 6b45: 8a 08        SUBW    AX,AX
 6b47: 3c           PUSH    AX
-6b48: 90 98        CALLF   !0898H
+6b48: 90 98        CALLF   !Interpret_Thing
 6b4a: 34           POP     AX
 6b4b: 14 09        BR      $6B56H
 6b4d: 20 ac        MOV     A,0FEACH
@@ -11077,7 +11070,7 @@ Empty_Debug:
 6b91: 81 08        BZ      $6B9BH
 6b93: 8a 08        SUBW    AX,AX
 6b95: 3c           PUSH    AX
-6b96: 90 98        CALLF   !0898H
+6b96: 90 98        CALLF   !Interpret_Thing
 6b98: 34           POP     AX
 6b99: 14 11        BR      $6BACH
 6b9b: 1c 63        MOVW    AX,0FE63H
@@ -11096,7 +11089,7 @@ Empty_Debug:
 6bb2: 81 08        BZ      $6BBCH
 6bb4: 8a 08        SUBW    AX,AX
 6bb6: 3c           PUSH    AX
-6bb7: 90 98        CALLF   !0898H
+6bb7: 90 98        CALLF   !Interpret_Thing
 6bb9: 34           POP     AX
 6bba: 14 0f        BR      $6BCBH
 6bbc: 1c 63        MOVW    AX,0FE63H
@@ -11115,44 +11108,44 @@ Empty_Debug:
 6bd1: 56           RET
 6bd2: 60 00 00     MOVW    AX,#0000H
 6bd5: 3c           PUSH    AX
-6bd6: 90 be        CALLF   !08BEH
+6bd6: 90 be        CALLF   Puzzle_Piece1
 6bd8: 34           POP     AX
 6bd9: 8a 08        SUBW    AX,AX
 6bdb: 3c           PUSH    AX
-6bdc: 90 98        CALLF   !0898H
+6bdc: 90 98        CALLF   !Interpret_Thing
 6bde: 34           POP     AX
 6bdf: 60 00 9b     MOVW    AX,#9B00H
 6be2: 3c           PUSH    AX
 6be3: 28 2d 6f     CALL    !6F2DH
 6be6: 34           POP     AX
 6be7: 3d           PUSH    BC
-6be8: 90 98        CALLF   !0898H
+6be8: 90 98        CALLF   !Interpret_Thing
 6bea: 34           POP     AX
 6beb: 60 40 0a     MOVW    AX,#0A40H
 6bee: 3c           PUSH    AX
-6bef: 90 98        CALLF   !0898H
+6bef: 90 98        CALLF   !Interpret_Thing
 6bf1: 34           POP     AX
 6bf2: 60 40 0a     MOVW    AX,#0A40H
 6bf5: 3c           PUSH    AX
 6bf6: 28 2d 6f     CALL    !6F2DH
 6bf9: 34           POP     AX
 6bfa: 3d           PUSH    BC
-6bfb: 90 98        CALLF   !0898H
+6bfb: 90 98        CALLF   !Interpret_Thing
 6bfd: 34           POP     AX
 6bfe: 60 c0 8a     MOVW    AX,#8AC0H
 6c01: 3c           PUSH    AX
-6c02: 90 98        CALLF   !0898H
+6c02: 90 98        CALLF   !Interpret_Thing
 6c04: 34           POP     AX
 6c05: 60 40 0a     MOVW    AX,#0A40H
 6c08: 3c           PUSH    AX
 6c09: 28 2d 6f     CALL    !6F2DH
 6c0c: 34           POP     AX
 6c0d: 3d           PUSH    BC
-6c0e: 90 98        CALLF   !0898H
+6c0e: 90 98        CALLF   !Interpret_Thing
 6c10: 34           POP     AX
 6c11: 8a 08        SUBW    AX,AX
 6c13: 3c           PUSH    AX
-6c14: 90 98        CALLF   !0898H
+6c14: 90 98        CALLF   !Interpret_Thing
 6c16: 34           POP     AX
 6c17: 6c 06 f8     AND     P6,#0F8H
 6c1a: 28 d7 6d     CALL    !6DD7H
@@ -11275,128 +11268,128 @@ Empty_Debug:
 6cf6: 56           RET
 6cf7: 60 00 00     MOVW    AX,#0000H
 6cfa: 3c           PUSH    AX
-6cfb: 90 be        CALLF   !08BEH
+6cfb: 90 be        CALLF   Puzzle_Piece1
 6cfd: 34           POP     AX
 6cfe: 8a 08        SUBW    AX,AX
 6d00: 3c           PUSH    AX
-6d01: 90 98        CALLF   !0898H
+6d01: 90 98        CALLF   !Interpret_Thing
 6d03: 34           POP     AX
 6d04: 60 54 1b     MOVW    AX,#1B54H
 6d07: 3c           PUSH    AX
 6d08: 28 2d 6f     CALL    !6F2DH
 6d0b: 34           POP     AX
 6d0c: 3d           PUSH    BC
-6d0d: 90 98        CALLF   !0898H
+6d0d: 90 98        CALLF   !Interpret_Thing
 6d0f: 34           POP     AX
 6d10: 60 00 9b     MOVW    AX,#9B00H
 6d13: 3c           PUSH    AX
-6d14: 90 98        CALLF   !0898H
+6d14: 90 98        CALLF   !Interpret_Thing
 6d16: 34           POP     AX
 6d17: 60 01 0d     MOVW    AX,#0D01H
 6d1a: 3c           PUSH    AX
 6d1b: 28 2d 6f     CALL    !6F2DH
 6d1e: 34           POP     AX
 6d1f: 3d           PUSH    BC
-6d20: 90 98        CALLF   !0898H
+6d20: 90 98        CALLF   !Interpret_Thing
 6d22: 34           POP     AX
 6d23: 8a 08        SUBW    AX,AX
 6d25: 3c           PUSH    AX
-6d26: 90 98        CALLF   !0898H
+6d26: 90 98        CALLF   !Interpret_Thing
 6d28: 34           POP     AX
 6d29: 60 91 9d     MOVW    AX,#9D91H
 6d2c: 3c           PUSH    AX
 6d2d: 28 2d 6f     CALL    !6F2DH
 6d30: 34           POP     AX
 6d31: 3d           PUSH    BC
-6d32: 90 98        CALLF   !0898H
+6d32: 90 98        CALLF   !Interpret_Thing
 6d34: 34           POP     AX
 6d35: 60 c0 9b     MOVW    AX,#9BC0H
 6d38: 3c           PUSH    AX
-6d39: 90 98        CALLF   !0898H
+6d39: 90 98        CALLF   !Interpret_Thing
 6d3b: 34           POP     AX
 6d3c: 28 d7 6d     CALL    !6DD7H
 6d3f: 56           RET
 6d40: b1 66        SET1    0FE66H.1
 6d42: 60 00 00     MOVW    AX,#0000H
 6d45: 3c           PUSH    AX
-6d46: 90 be        CALLF   !08BEH
+6d46: 90 be        CALLF   Puzzle_Piece1
 6d48: 34           POP     AX
 6d49: 60 40 02     MOVW    AX,#0240H
 6d4c: 3c           PUSH    AX
-6d4d: 90 98        CALLF   !0898H
+6d4d: 90 98        CALLF   !Interpret_Thing
 6d4f: 34           POP     AX
 6d50: 60 40 02     MOVW    AX,#0240H
 6d53: 3c           PUSH    AX
 6d54: 28 2d 6f     CALL    !6F2DH
 6d57: 34           POP     AX
 6d58: 3d           PUSH    BC
-6d59: 90 98        CALLF   !0898H
+6d59: 90 98        CALLF   !Interpret_Thing
 6d5b: 34           POP     AX
 6d5c: 60 92 d0     MOVW    AX,#0D092H
 6d5f: 3c           PUSH    AX
-6d60: 90 98        CALLF   !0898H
+6d60: 90 98        CALLF   !Interpret_Thing
 6d62: 34           POP     AX
 6d63: 60 91 29     MOVW    AX,#2991H
 6d66: 3c           PUSH    AX
 6d67: 28 2d 6f     CALL    !6F2DH
 6d6a: 34           POP     AX
 6d6b: 3d           PUSH    BC
-6d6c: 90 98        CALLF   !0898H
+6d6c: 90 98        CALLF   !Interpret_Thing
 6d6e: 34           POP     AX
 6d6f: 60 d0 1b     MOVW    AX,#1BD0H
 6d72: 3c           PUSH    AX
-6d73: 90 98        CALLF   !0898H
+6d73: 90 98        CALLF   !Interpret_Thing
 6d75: 34           POP     AX
 6d76: 60 40 02     MOVW    AX,#0240H
 6d79: 3c           PUSH    AX
 6d7a: 28 2d 6f     CALL    !6F2DH
 6d7d: 34           POP     AX
 6d7e: 3d           PUSH    BC
-6d7f: 90 98        CALLF   !0898H
+6d7f: 90 98        CALLF   !Interpret_Thing
 6d81: 34           POP     AX
 6d82: 60 40 02     MOVW    AX,#0240H
 6d85: 3c           PUSH    AX
-6d86: 90 98        CALLF   !0898H
+6d86: 90 98        CALLF   !Interpret_Thing
 6d88: 34           POP     AX
 6d89: 3a 86 fa     MOV     0FE86H,#0FAH
 6d8c: 28 d7 6d     CALL    !6DD7H
 6d8f: 56           RET
 6d90: 60 90 89     MOVW    AX,#8990H
 6d93: 3c           PUSH    AX
-6d94: 90 98        CALLF   !0898H
+6d94: 90 98        CALLF   !Interpret_Thing
 6d96: 34           POP     AX
 6d97: 60 94 29     MOVW    AX,#2994H
 6d9a: 3c           PUSH    AX
 6d9b: 28 2d 6f     CALL    !6F2DH
 6d9e: 34           POP     AX
 6d9f: 3d           PUSH    BC
-6da0: 90 98        CALLF   !0898H
+6da0: 90 98        CALLF   !Interpret_Thing
 6da2: 34           POP     AX
 6da3: 60 00 89     MOVW    AX,#8900H
 6da6: 3c           PUSH    AX
-6da7: 90 98        CALLF   !0898H
+6da7: 90 98        CALLF   !Interpret_Thing
 6da9: 34           POP     AX
 6daa: 60 90 99     MOVW    AX,#9990H
 6dad: 3c           PUSH    AX
 6dae: 28 2d 6f     CALL    !6F2DH
 6db1: 34           POP     AX
 6db2: 3d           PUSH    BC
-6db3: 90 98        CALLF   !0898H
+6db3: 90 98        CALLF   !Interpret_Thing
 6db5: 34           POP     AX
 6db6: 60 00 99     MOVW    AX,#9900H
 6db9: 3c           PUSH    AX
-6dba: 90 98        CALLF   !0898H
+6dba: 90 98        CALLF   !Interpret_Thing
 6dbc: 34           POP     AX
 6dbd: 60 05 0b     MOVW    AX,#0B05H
 6dc0: 3c           PUSH    AX
 6dc1: 28 2d 6f     CALL    !6F2DH
 6dc4: 34           POP     AX
 6dc5: 3d           PUSH    BC
-6dc6: 90 98        CALLF   !0898H
+6dc6: 90 98        CALLF   !Interpret_Thing
 6dc8: 34           POP     AX
 6dc9: 60 92 d0     MOVW    AX,#0D092H
 6dcc: 3c           PUSH    AX
-6dcd: 90 98        CALLF   !0898H
+6dcd: 90 98        CALLF   !Interpret_Thing
 6dcf: 34           POP     AX
 6dd0: 6c 06 f8     AND     P6,#0F8H
 6dd3: 28 d7 6d     CALL    !6DD7H
@@ -11413,7 +11406,7 @@ Empty_Debug:
 6de7: 90 2f        CALLF   !Clear_HiBit
 6de9: 8a 08        SUBW    AX,AX
 6deb: 3c           PUSH    AX
-6dec: 90 98        CALLF   !0898H
+6dec: 90 98        CALLF   !Interpret_Thing
 6dee: 34           POP     AX
 6def: 90 23        CALLF   !Set_HiBit
 6df1: 60 95 00     MOVW    AX,#0095H
@@ -11508,7 +11501,7 @@ Empty_Debug:
 6ecf: b8 00        MOV     X,#00H
 6ed1: d8           XCH     A,X
 6ed2: 3c           PUSH    AX
-6ed3: 90 be        CALLF   !08BEH
+6ed3: 90 be        CALLF   Puzzle_Piece1
 6ed5: 34           POP     AX
 6ed6: 20 7e        MOV     A,0FE7EH
 6ed8: ac 10        AND     A,#10H
@@ -11536,7 +11529,7 @@ Empty_Debug:
 6f09: 24 48        MOVW    DE,AX
 6f0b: 05 e2        MOVW    AX,[DE]
 6f0d: 3c           PUSH    AX
-6f0e: 90 98        CALLF   !0898H
+6f0e: 90 98        CALLF   !Interpret_Thing
 6f10: 34           POP     AX
 6f11: 14 17        BR      $6F2AH
 6f13: 20 6a        MOV     A,0FE6AH
@@ -11550,7 +11543,7 @@ Empty_Debug:
 6f22: 28 2d 6f     CALL    !6F2DH
 6f25: 34           POP     AX
 6f26: 3d           PUSH    BC
-6f27: 90 98        CALLF   !0898H
+6f27: 90 98        CALLF   !Interpret_Thing
 6f29: 34           POP     AX
 6f2a: 34           POP     AX
 6f2b: 37           POP     HL
@@ -11697,29 +11690,29 @@ Empty_Debug:
 702e: 56           RET
 702f: 60 00 99     MOVW    AX,#9900H
 7032: 3c           PUSH    AX
-7033: 90 98        CALLF   !0898H
+7033: 90 98        CALLF   !Interpret_Thing
 7035: 34           POP     AX
 7036: 60 02 d0     MOVW    AX,#0D002H
 7039: 3c           PUSH    AX
 703a: 28 2d 6f     CALL    !6F2DH
 703d: 34           POP     AX
 703e: 3d           PUSH    BC
-703f: 90 98        CALLF   !0898H
+703f: 90 98        CALLF   !Interpret_Thing
 7041: 34           POP     AX
 7042: 60 40 82     MOVW    AX,#8240H
 7045: 3c           PUSH    AX
-7046: 90 98        CALLF   !0898H
+7046: 90 98        CALLF   !Interpret_Thing
 7048: 34           POP     AX
 7049: 60 54 1b     MOVW    AX,#1B54H
 704c: 3c           PUSH    AX
 704d: 28 2d 6f     CALL    !6F2DH
 7050: 34           POP     AX
 7051: 3d           PUSH    BC
-7052: 90 98        CALLF   !0898H
+7052: 90 98        CALLF   !Interpret_Thing
 7054: 34           POP     AX
 7055: 60 d0 9b     MOVW    AX,#9BD0H
 7058: 3c           PUSH    AX
-7059: 90 98        CALLF   !0898H
+7059: 90 98        CALLF   !Interpret_Thing
 705b: 34           POP     AX
 705c: 08 a0 72 04  BF      0FE72H.0,$7064H
 7060: 8a 08        SUBW    AX,AX
@@ -11729,51 +11722,51 @@ Empty_Debug:
 7068: 28 2d 6f     CALL    !6F2DH
 706b: 34           POP     AX
 706c: 3d           PUSH    BC
-706d: 90 98        CALLF   !0898H
+706d: 90 98        CALLF   !Interpret_Thing
 706f: 34           POP     AX
 7070: 8a 08        SUBW    AX,AX
 7072: 3c           PUSH    AX
-7073: 90 98        CALLF   !0898H
+7073: 90 98        CALLF   !Interpret_Thing
 7075: 34           POP     AX
 7076: 6c 06 f8     AND     P6,#0F8H
 7079: 28 d7 6d     CALL    !6DD7H
 707c: 56           RET
 707d: 60 91 29     MOVW    AX,#2991H
 7080: 3c           PUSH    AX
-7081: 90 98        CALLF   !0898H
+7081: 90 98        CALLF   !Interpret_Thing
 7083: 34           POP     AX
 7084: 60 00 9b     MOVW    AX,#9B00H
 7087: 3c           PUSH    AX
 7088: 28 2d 6f     CALL    !6F2DH
 708b: 34           POP     AX
 708c: 3d           PUSH    BC
-708d: 90 98        CALLF   !0898H
+708d: 90 98        CALLF   !Interpret_Thing
 708f: 34           POP     AX
 7090: 60 91 29     MOVW    AX,#2991H
 7093: 3c           PUSH    AX
-7094: 90 98        CALLF   !0898H
+7094: 90 98        CALLF   !Interpret_Thing
 7096: 34           POP     AX
 7097: 60 c0 93     MOVW    AX,#93C0H
 709a: 3c           PUSH    AX
 709b: 28 2d 6f     CALL    !6F2DH
 709e: 34           POP     AX
 709f: 3d           PUSH    BC
-70a0: 90 98        CALLF   !0898H
+70a0: 90 98        CALLF   !Interpret_Thing
 70a2: 34           POP     AX
 70a3: 60 00 99     MOVW    AX,#9900H
 70a6: 3c           PUSH    AX
-70a7: 90 98        CALLF   !0898H
+70a7: 90 98        CALLF   !Interpret_Thing
 70a9: 34           POP     AX
 70aa: 60 d0 1b     MOVW    AX,#1BD0H
 70ad: 3c           PUSH    AX
 70ae: 28 2d 6f     CALL    !6F2DH
 70b1: 34           POP     AX
 70b2: 3d           PUSH    BC
-70b3: 90 98        CALLF   !0898H
+70b3: 90 98        CALLF   !Interpret_Thing
 70b5: 34           POP     AX
 70b6: 60 94 29     MOVW    AX,#2994H
 70b9: 3c           PUSH    AX
-70ba: 90 98        CALLF   !0898H
+70ba: 90 98        CALLF   !Interpret_Thing
 70bc: 34           POP     AX
 70bd: 6c 06 f8     AND     P6,#0F8H
 70c0: 28 d7 6d     CALL    !6DD7H
@@ -11840,7 +11833,7 @@ Init_Step1:
 Init_Step2:
 715e: 6c 06 f7     AND     P6,#0F7H
 7161: 28 70 76     CALL    Setup_Timers
-7164: 3a 75 00     MOV     0FE75H,#00H
+7164: 3a 75 00     MOV     Wheel_Count,#00H
 7167: b9 00        MOV     A,#00H
 7169: 09 f1 0a fd  MOV     !0FD0AH,A
 716d: 22 88        MOV     0FE88H,A
@@ -11888,7 +11881,7 @@ Init_Step2:
 71d6: 3c           PUSH    AX
 71d7: 28 43 8b     CALL    !8B43H
 71da: 34           POP     AX
-71db: 28 ce 7a     CALL    !7ACEH
+71db: 28 ce 7a     CALL    Query_DFBE
 71de: 64 c0 df     MOVW    DE,#0DFC0H
 71e1: 5c           MOV     A,[DE]
 71e2: ac 01        AND     A,#01H
@@ -11967,7 +11960,7 @@ Init_Step2:
 7283: a6 65        CLR1    0FE65H.6
 7285: 28 2b 92     CALL    !922BH
 7288: 60 6d b5     MOVW    AX,#0B56DH
-728b: 64 b4 fd     MOVW    DE,#0FDB4H
+728b: 64 b4 fd     MOVW    DE,@NMI_FLAG_WORD
 728e: 05 e6        MOVW    [DE],AX
 7290: 56           RET
 7291: 28 4a 7c     CALL    !7C4AH
@@ -12039,7 +12032,7 @@ Init_Step2:
 731d: 3c           PUSH    AX
 731e: 28 6d 8b     CALL    Delay_Loop
 7321: 34           POP     AX
-7322: 28 ce 7a     CALL    !7ACEH
+7322: 28 ce 7a     CALL    Query_DFBE
 7325: b9 03        MOV     A,#03H
 7327: 09 f1 09 fd  MOV     !0FD09H,A
 732b: b9 00        MOV     A,#00H
@@ -12064,7 +12057,7 @@ Init_Step2:
 7364: 3c           PUSH    AX
 7365: 28 43 8b     CALL    !8B43H
 7368: 34           POP     AX
-7369: 28 ce 7a     CALL    !7ACEH
+7369: 28 ce 7a     CALL    Query_DFBE
 736c: 64 55 d5     MOVW    DE,#0D555H
 736f: b9 aa        MOV     A,#0AAH
 7371: 54           MOV     [DE],A
@@ -12081,7 +12074,7 @@ Init_Step2:
 7387: 3c           PUSH    AX
 7388: 28 43 8b     CALL    !8B43H
 738b: 34           POP     AX
-738c: 28 ce 7a     CALL    !7ACEH
+738c: 28 ce 7a     CALL    Query_DFBE
 738f: 64 55 d5     MOVW    DE,#0D555H
 7392: b9 aa        MOV     A,#0AAH
 7394: 54           MOV     [DE],A
@@ -12150,7 +12143,7 @@ Init_Step2:
 740d: 3c           PUSH    AX
 740e: 28 43 8b     CALL    !8B43H
 7411: 34           POP     AX
-7412: 28 ce 7a     CALL    !7ACEH
+7412: 28 ce 7a     CALL    Query_DFBE
 7415: 64 55 d5     MOVW    DE,#0D555H
 7418: b9 aa        MOV     A,#0AAH
 741a: 54           MOV     [DE],A
@@ -12173,7 +12166,7 @@ Init_Step2:
 743d: 3c           PUSH    AX
 743e: 28 43 8b     CALL    !8B43H
 7441: 34           POP     AX
-7442: 28 ce 7a     CALL    !7ACEH
+7442: 28 ce 7a     CALL    Query_DFBE
 7445: 64 55 d5     MOVW    DE,#0D555H
 7448: b9 aa        MOV     A,#0AAH
 744a: 54           MOV     [DE],A
@@ -12197,7 +12190,7 @@ Init_Step2:
 7476: 3c           PUSH    AX
 7477: 28 6d 8b     CALL    Delay_Loop
 747a: 34           POP     AX
-747b: 28 ce 7a     CALL    !7ACEH
+747b: 28 ce 7a     CALL    Query_DFBE
 747e: 64 d7 df     MOVW    DE,#0DFD7H
 7481: 05 e2        MOVW    AX,[DE]
 7483: 1a 90        MOVW    0FE90H,AX
@@ -12224,7 +12217,7 @@ Init_Step2:
 74b2: 3c           PUSH    AX
 74b3: 28 6d 8b     CALL    Delay_Loop
 74b6: 34           POP     AX
-74b7: 28 ce 7a     CALL    !7ACEH
+74b7: 28 ce 7a     CALL    Query_DFBE
 74ba: 60 c0 df     MOVW    AX,#0DFC0H
 74bd: 3f           PUSH    HL
 74be: 24 48        MOVW    DE,AX
@@ -12400,7 +12393,7 @@ Init_Step2:
 764a: 3c           PUSH    AX
 764b: 28 6d 8b     CALL    Delay_Loop
 764e: 34           POP     AX
-764f: 28 ce 7a     CALL    !7ACEH
+764f: 28 ce 7a     CALL    Query_DFBE
 7652: 64 d4 df     MOVW    DE,#0DFD4H
 7655: 5c           MOV     A,[DE]
 7656: 22 a1        MOV     0FEA1H,A
@@ -12702,7 +12695,7 @@ Service_NMI:
 78a8: 3e           PUSH    DE
 78a9: 3d           PUSH    BC
 78aa: 3c           PUSH    AX
-78ab: 64 b4 fd     MOVW    DE,#0FDB4H
+78ab: 64 b4 fd     MOVW    DE,@NMI_FLAG_WORD
 78ae: 05 e2        MOVW    AX,[DE]
 78b0: 2f 6d b5     CMPW    AX,#0B56DH
 78b3: 80 03        BNZ     $78B8H
@@ -12715,7 +12708,7 @@ Service_NMI:
 Service_RESET:
 78bd: 0b fc 55 fe  MOVW    SP,#0FE55H
 78c1: 8a 08        SUBW    AX,AX
-78c3: 64 b4 fd     MOVW    DE,#0FDB4H     
+78c3: 64 b4 fd     MOVW    DE,@NMI_FLAG_WORD
 78c6: 05 e6        MOVW    [DE],AX
 78c8: bb 00        MOV     B,#00H        ; clear RAM FD00-FDFF
 78ca: b9 00        MOV     A,#00H
@@ -12731,7 +12724,7 @@ Service_RESET:
 78dc: a4 00        CLR1    P0.4          ; Clear Port 0, bit 4   Turn off Real Time Clock - Chip Select - pin 2
 78de: 28 0f 7a     CALL    Startup        ; actual startup
 78e1: 57           RETI
-Service_INT_P4:
+Service_INT_P4:                                     ; We get here when the tuning knob has moved either way
 78e2: 3f           PUSH    HL
 78e3: 3e           PUSH    DE
 78e4: 3d           PUSH    BC
@@ -12739,15 +12732,15 @@ Service_INT_P4:
 78e6: 08 a0 66 1e  BF      0FE66H.0,$7908H
 78ea: 76 66 1b     BT      0FE66H.6,$7908H
 78ed: 76 65 18     BT      0FE65H.6,$7908H
-78f0: 75 07 0b     BT      P7.5,$78FEH
-78f3: 08 a5 69 03  BF      0FE69H.5,$78FAH
-78f7: 3a 75 00     MOV     0FE75H,#00H
+78f0: 75 07 0b     BT      P7.5,$78FEH              ; get wheel direction
+78f3: 08 a5 69 03  BF      0FE69H.5,$78FAH          ; compare to previous wheel direction flag
+78f7: 3a 75 00     MOV     Wheel_Count,#00H
 78fa: a5 69        CLR1    0FE69H.5
 78fc: 14 08        BR      $7906H
 78fe: 75 69 03     BT      0FE69H.5,$7904H
-7901: 3a 75 00     MOV     0FE75H,#00H
+7901: 3a 75 00     MOV     Wheel_Count,#00H
 7904: b5 69        SET1    0FE69H.5
-7906: 26 75        INC     0FE75H
+7906: 26 75        INC     Wheel_Count
 7908: 34           POP     AX
 7909: 35           POP     BC
 790a: 36           POP     DE
@@ -12774,7 +12767,7 @@ Service_INT_P0:
 7922: 57           RETI
 Service_BRK:
 7923: 8a 08        SUBW    AX,AX
-7925: 64 b4 fd     MOVW    DE,#0FDB4H
+7925: 64 b4 fd     MOVW    DE,@NMI_FLAG_WORD
 7928: 05 e6        MOVW    [DE],AX
 792a: a4 00        CLR1    P0.4
 792c: 0b fc 55 fe  MOVW    SP,#0FE55H
@@ -12888,7 +12881,7 @@ Startup:
 7a21: 08 a0 68 03  BF      0FE68H.0,$7A28H
 7a25: 28 28 9e     CALL    !9E28H
 7a28: b9 00        MOV     A,#00H
-7a2a: 9f 75        CMP     A,0FE75H
+7a2a: 9f 75        CMP     A,Wheel_Count
 7a2c: 82 03        BNC     $7A31H
 7a2e: 28 cb a7     CALL    !0A7CBH
 7a31: 08 a5 68 03  BF      0FE68H.5,$7A38H
@@ -12951,6 +12944,7 @@ Startup:
 7ac8: b4 00        SET1    P0.4
 7aca: 2c 18 7a     BR      !7A18H
 7acd: 56           RET
+Query_DFBE:
 7ace: 3f           PUSH    HL
 7acf: 05 c9        DECW    SP
 7ad1: 05 c9        DECW    SP
@@ -12997,7 +12991,7 @@ Startup:
 7b20: 3c           PUSH    AX
 7b21: 28 6d 8b     CALL    Delay_Loop
 7b24: 34           POP     AX
-7b25: 28 ce 7a     CALL    !7ACEH
+7b25: 28 ce 7a     CALL    Query_DFBE
 7b28: 06 20 06     MOV     A,[HL+06H]
 7b2b: d8           XCH     A,X
 7b2c: 06 20 07     MOV     A,[HL+07H]
@@ -13024,7 +13018,7 @@ Startup:
 7b59: 3c           PUSH    AX
 7b5a: 28 6d 8b     CALL    Delay_Loop
 7b5d: 34           POP     AX
-7b5e: 28 ce 7a     CALL    !7ACEH
+7b5e: 28 ce 7a     CALL    Query_DFBE
 7b61: 37           POP     HL
 7b62: 56           RET
 7b63: 3f           PUSH    HL
@@ -13041,7 +13035,7 @@ Startup:
 7b7a: 3c           PUSH    AX
 7b7b: 28 6d 8b     CALL    Delay_Loop
 7b7e: 34           POP     AX
-7b7f: 28 ce 7a     CALL    !7ACEH
+7b7f: 28 ce 7a     CALL    Query_DFBE
 7b82: 06 20 08     MOV     A,[HL+08H]
 7b85: d8           XCH     A,X
 7b86: 06 20 09     MOV     A,[HL+09H]
@@ -13081,7 +13075,7 @@ Startup:
 7bd0: 3c           PUSH    AX
 7bd1: 28 6d 8b     CALL    Delay_Loop
 7bd4: 34           POP     AX
-7bd5: 28 ce 7a     CALL    !7ACEH
+7bd5: 28 ce 7a     CALL    Query_DFBE
 7bd8: 34           POP     AX
 7bd9: 37           POP     HL
 7bda: 56           RET
@@ -13131,7 +13125,7 @@ Startup:
 7c33: 3c           PUSH    AX
 7c34: 28 6d 8b     CALL    Delay_Loop
 7c37: 34           POP     AX
-7c38: 28 ce 7a     CALL    !7ACEH
+7c38: 28 ce 7a     CALL    Query_DFBE
 7c3b: 06 20 04     MOV     A,[HL+04H]
 7c3e: d8           XCH     A,X
 7c3f: 06 20 05     MOV     A,[HL+05H]
@@ -13146,7 +13140,7 @@ Startup:
 7c4e: 3c           PUSH    AX
 7c4f: 28 43 8b     CALL    !8B43H
 7c52: 34           POP     AX
-7c53: 28 ce 7a     CALL    !7ACEH
+7c53: 28 ce 7a     CALL    Query_DFBE
 7c56: 64 55 d5     MOVW    DE,#0D555H
 7c59: b9 aa        MOV     A,#0AAH
 7c5b: 54           MOV     [DE],A
@@ -13163,7 +13157,7 @@ Startup:
 7c71: 3c           PUSH    AX
 7c72: 28 43 8b     CALL    !8B43H
 7c75: 34           POP     AX
-7c76: 28 ce 7a     CALL    !7ACEH
+7c76: 28 ce 7a     CALL    Query_DFBE
 7c79: 4b           EI
 7c7a: 56           RET
 7c7b: 3f           PUSH    HL
@@ -13364,7 +13358,7 @@ Startup:
 7e04: d8           XCH     A,X
 7e05: 1a a4        MOVW    0FEA4H,AX
 7e07: 0c a6 12 00  MOVW    0FEA6H,#0012H
-7e0b: 28 f7 ab     CALL    !0ABF7H
+7e0b: 28 f7 ab     CALL    Multiply_Thing
 7e0e: 1c a4        MOVW    AX,0FEA4H
 7e10: 2d 00 c0     ADDW    AX,#0C000H
 7e13: 1a 6a        MOVW    0FE6AH,AX
@@ -13495,7 +13489,7 @@ Startup:
 7f15: 3c           PUSH    AX
 7f16: 28 6d 8b     CALL    Delay_Loop
 7f19: 34           POP     AX
-7f1a: 28 ce 7a     CALL    !7ACEH
+7f1a: 28 ce 7a     CALL    Query_DFBE
 7f1d: 64 55 d5     MOVW    DE,#0D555H
 7f20: b9 aa        MOV     A,#0AAH
 7f22: 54           MOV     [DE],A
@@ -13565,7 +13559,7 @@ Startup:
 7f9f: 1c 6a        MOVW    AX,0FE6AH
 7fa1: 1a a4        MOVW    0FEA4H,AX
 7fa3: 0c a6 64 00  MOVW    0FEA6H,#0064H
-7fa7: 28 f7 ab     CALL    !0ABF7H
+7fa7: 28 f7 ab     CALL    Multiply_Thing
 7faa: 20 90        MOV     A,0FE90H
 7fac: 30 a1        SHR     A,4
 7fae: b8 0a        MOV     X,#0AH
@@ -13580,7 +13574,7 @@ Startup:
 7fbf: 88 0a        ADDW    AX,BC
 7fc1: 1a a6        MOVW    0FEA6H,AX
 7fc3: 0c a4 12 00  MOVW    0FEA4H,#0012H
-7fc7: 28 f7 ab     CALL    !0ABF7H
+7fc7: 28 f7 ab     CALL    Multiply_Thing
 7fca: 1c a4        MOVW    AX,0FEA4H
 7fcc: 2d 00 c0     ADDW    AX,#0C000H
 7fcf: 1a 6a        MOVW    0FE6AH,AX
@@ -13588,7 +13582,7 @@ Startup:
 7fd4: 3c           PUSH    AX
 7fd5: 28 6d 8b     CALL    Delay_Loop
 7fd8: 34           POP     AX
-7fd9: 28 ce 7a     CALL    !7ACEH
+7fd9: 28 ce 7a     CALL    Query_DFBE
 7fdc: 08 a6 65 28  BF      0FE65H.6,$8008H
 7fe0: 09 f0 97 fd  MOV     A,!0FD97H
 7fe4: ac 04        AND     A,#04H
@@ -13681,7 +13675,7 @@ Startup:
 8097: 3c           PUSH    AX
 8098: 28 6d 8b     CALL    Delay_Loop
 809b: 34           POP     AX
-809c: 28 ce 7a     CALL    !7ACEH
+809c: 28 ce 7a     CALL    Query_DFBE
 809f: 06 20 0a     MOV     A,[HL+0AH]
 80a2: d8           XCH     A,X
 80a3: 06 20 0b     MOV     A,[HL+0BH]
@@ -14056,7 +14050,7 @@ Startup:
 83b6: 3c           PUSH    AX
 83b7: 28 e8 7d     CALL    !7DE8H
 83ba: 34           POP     AX
-83bb: 28 ce 7a     CALL    !7ACEH
+83bb: 28 ce 7a     CALL    Query_DFBE
 83be: 1c 6a        MOVW    AX,0FE6AH
 83c0: 24 48        MOVW    DE,AX
 83c2: 06 00 10     MOV     A,[DE+10H]
@@ -14200,7 +14194,7 @@ Startup:
 84dd: 3c           PUSH    AX
 84de: 28 6d 8b     CALL    Delay_Loop
 84e1: 34           POP     AX
-84e2: 28 ce 7a     CALL    !7ACEH
+84e2: 28 ce 7a     CALL    Query_DFBE
 84e5: 06 20 02     MOV     A,[HL+02H]
 84e8: d8           XCH     A,X
 84e9: 06 20 03     MOV     A,[HL+03H]
@@ -14272,7 +14266,7 @@ Startup:
 8571: 2e 06 00     SUBW    AX,#0006H
 8574: 24 68        MOVW    HL,AX
 8576: 13 fc        MOVW    SP,AX
-8578: 28 ce 7a     CALL    !7ACEH
+8578: 28 ce 7a     CALL    Query_DFBE
 857b: 28 14 89     CALL    !8914H
 857e: 8a 08        SUBW    AX,AX
 8580: 8f 0a        CMPW    AX,BC
@@ -14911,7 +14905,7 @@ Startup:
 8af3: 3a ac 00     MOV     0FEACH,#00H
 8af6: 6f ac 07     CMP     0FEACH,#07H
 8af9: 82 37        BNC     $8B32H
-8afb: 28 ce 7a     CALL    !7ACEH
+8afb: 28 ce 7a     CALL    Query_DFBE
 8afe: 20 ac        MOV     A,0FEACH
 8b00: b8 00        MOV     X,#00H
 8b02: d8           XCH     A,X
@@ -14987,11 +14981,12 @@ Delay_Loop:
 8b80: 14 f0        BR      $8B72H
 8b82: 37           POP     HL
 8b83: 56           RET
-8b84: b6 06        SET1    P6.6
+Cycle_Serial_Clock:
+8b84: b6 06        SET1    P6.6    ; set the bit high, but add delay
 8b86: b6 06        SET1    P6.6
 8b88: b6 06        SET1    P6.6
 8b8a: b6 06        SET1    P6.6
-8b8c: a6 06        CLR1    P6.6
+8b8c: a6 06        CLR1    P6.6    ; now turn it off
 8b8e: 56           RET
 8b8f: 3f           PUSH    HL
 8b90: 1c ac        MOVW    AX,0FEACH
@@ -15036,7 +15031,7 @@ Delay_Loop:
 8bd8: 05 e3        MOVW    AX,[HL]
 8bda: 1a a4        MOVW    0FEA4H,AX
 8bdc: 0c a6 64 00  MOVW    0FEA6H,#0064H
-8be0: 28 f7 ab     CALL    !0ABF7H
+8be0: 28 f7 ab     CALL    Multiply_Thing
 8be3: 1c a4        MOVW    AX,0FEA4H
 8be5: 3c           PUSH    AX
 8be6: 24 0e        MOVW    AX,HL
@@ -15852,7 +15847,7 @@ Delay_Loop:
 92b7: 3c           PUSH    AX
 92b8: 28 6d 8b     CALL    Delay_Loop
 92bb: 34           POP     AX
-92bc: 28 ce 7a     CALL    !7ACEH
+92bc: 28 ce 7a     CALL    Query_DFBE
 92bf: 64 55 d5     MOVW    DE,#0D555H
 92c2: b9 aa        MOV     A,#0AAH
 92c4: 54           MOV     [DE],A
@@ -15890,7 +15885,7 @@ Delay_Loop:
 9309: 3c           PUSH    AX
 930a: 28 6d 8b     CALL    Delay_Loop
 930d: 34           POP     AX
-930e: 28 ce 7a     CALL    !7ACEH
+930e: 28 ce 7a     CALL    Query_DFBE
 9311: 64 55 d5     MOVW    DE,#0D555H
 9314: b9 aa        MOV     A,#0AAH
 9316: 54           MOV     [DE],A
@@ -15922,49 +15917,49 @@ Delay_Loop:
 9347: 34           POP     AX
 9348: 34           POP     AX
 9349: 8a 08        SUBW    AX,AX
-934b: 64 b4 fd     MOVW    DE,#0FDB4H
+934b: 64 b4 fd     MOVW    DE,@NMI_FLAG_WORD
 934e: 05 e6        MOVW    [DE],AX
 9350: 28 20 58     CALL    !5820H
 9353: 60 00 00     MOVW    AX,#0000H
 9356: 3c           PUSH    AX
-9357: 28 be 08     CALL    !08BEH
+9357: 28 be 08     CALL    Puzzle_Piece1
 935a: 34           POP     AX
 935b: 60 50 1b     MOVW    AX,#1B50H
 935e: 3c           PUSH    AX
-935f: 28 98 08     CALL    !0898H
+935f: 28 98 08     CALL    !Interpret_Thing
 9362: 34           POP     AX
 9363: 60 94 0d     MOVW    AX,#0D94H
 9366: 3c           PUSH    AX
 9367: 28 2d 6f     CALL    !6F2DH
 936a: 34           POP     AX
 936b: 3d           PUSH    BC
-936c: 28 98 08     CALL    !0898H
+936c: 28 98 08     CALL    !Interpret_Thing
 936f: 34           POP     AX
 9370: 60 54 1b     MOVW    AX,#1B54H
 9373: 3c           PUSH    AX
-9374: 28 98 08     CALL    !0898H
+9374: 28 98 08     CALL    !Interpret_Thing
 9377: 34           POP     AX
 9378: 60 00 1b     MOVW    AX,#1B00H
 937b: 3c           PUSH    AX
 937c: 28 2d 6f     CALL    !6F2DH
 937f: 34           POP     AX
 9380: 3d           PUSH    BC
-9381: 28 98 08     CALL    !0898H
+9381: 28 98 08     CALL    !Interpret_Thing
 9384: 34           POP     AX
 9385: 60 d0 1b     MOVW    AX,#1BD0H
 9388: 3c           PUSH    AX
-9389: 28 98 08     CALL    !0898H
+9389: 28 98 08     CALL    !Interpret_Thing
 938c: 34           POP     AX
 938d: 60 02 d0     MOVW    AX,#0D002H
 9390: 3c           PUSH    AX
 9391: 28 2d 6f     CALL    !6F2DH
 9394: 34           POP     AX
 9395: 3d           PUSH    BC
-9396: 28 98 08     CALL    !0898H
+9396: 28 98 08     CALL    !Interpret_Thing
 9399: 34           POP     AX
 939a: 60 00 89     MOVW    AX,#8900H
 939d: 3c           PUSH    AX
-939e: 28 98 08     CALL    !0898H
+939e: 28 98 08     CALL    !Interpret_Thing
 93a1: 34           POP     AX
 93a2: 28 d7 6d     CALL    !6DD7H
 93a5: 14 fe        BR      $93A5H
@@ -16060,7 +16055,7 @@ Delay_Loop:
 946d: 3c           PUSH    AX
 946e: 28 6d 8b     CALL    Delay_Loop
 9471: 34           POP     AX
-9472: 28 ce 7a     CALL    !7ACEH
+9472: 28 ce 7a     CALL    Query_DFBE
 9475: 06 20 01     MOV     A,[HL+01H]
 9478: d8           XCH     A,X
 9479: 06 20 02     MOV     A,[HL+02H]
@@ -16087,7 +16082,7 @@ Delay_Loop:
 94a6: 3c           PUSH    AX
 94a7: 28 6d 8b     CALL    Delay_Loop
 94aa: 34           POP     AX
-94ab: 28 ce 7a     CALL    !7ACEH
+94ab: 28 ce 7a     CALL    Query_DFBE
 94ae: 06 20 01     MOV     A,[HL+01H]
 94b1: d8           XCH     A,X
 94b2: 06 20 02     MOV     A,[HL+02H]
@@ -16181,7 +16176,7 @@ Delay_Loop:
 956b: 3c           PUSH    AX
 956c: 28 6d 8b     CALL    Delay_Loop
 956f: 34           POP     AX
-9570: 28 ce 7a     CALL    !7ACEH
+9570: 28 ce 7a     CALL    Query_DFBE
 9573: 05 e3        MOVW    AX,[HL]
 9575: 44           INCW    AX
 9576: 06 a0 01     MOV     [HL+01H],A
@@ -16232,7 +16227,7 @@ Delay_Loop:
 95d3: 3c           PUSH    AX
 95d4: 28 6d 8b     CALL    Delay_Loop
 95d7: 34           POP     AX
-95d8: 28 ce 7a     CALL    !7ACEH
+95d8: 28 ce 7a     CALL    Query_DFBE
 95db: 0c 70 a1 df  MOVW    0FE70H,#0DFA1H
 95df: 64 a1 df     MOVW    DE,#0DFA1H
 95e2: 5c           MOV     A,[DE]
@@ -16286,7 +16281,7 @@ Delay_Loop:
 9649: 1e 6e        SUBW    AX,0FE6EH
 964b: 1a a6        MOVW    0FEA6H,AX
 964d: 0c a4 19 00  MOVW    0FEA4H,#0019H
-9651: 28 f7 ab     CALL    !0ABF7H
+9651: 28 f7 ab     CALL    Multiply_Thing
 9654: 1c 6c        MOVW    AX,0FE6CH
 9656: 1e 6e        SUBW    AX,0FE6EH
 9658: 1a a6        MOVW    0FEA6H,AX
@@ -16297,7 +16292,7 @@ Delay_Loop:
 9664: 1c a4        MOVW    AX,0FEA4H
 9666: 1a a8        MOVW    0FEA8H,AX
 9668: 0c a4 19 00  MOVW    0FEA4H,#0019H
-966c: 28 f7 ab     CALL    !0ABF7H
+966c: 28 f7 ab     CALL    Multiply_Thing
 966f: 1c a8        MOVW    AX,0FEA8H
 9671: 1d a4        ADDW    AX,0FEA4H
 9673: 1a 6c        MOVW    0FE6CH,AX
@@ -16680,7 +16675,7 @@ Delay_Loop:
 99a3: 1a a4        MOVW    0FEA4H,AX
 99a5: 05 e3        MOVW    AX,[HL]
 99a7: 1a a6        MOVW    0FEA6H,AX
-99a9: 28 f7 ab     CALL    !0ABF7H
+99a9: 28 f7 ab     CALL    Multiply_Thing
 99ac: 20 ac        MOV     A,0FEACH
 99ae: b8 00        MOV     X,#00H
 99b0: d8           XCH     A,X
@@ -16764,7 +16759,7 @@ Delay_Loop:
 9a53: 1c ac        MOVW    AX,0FEACH
 9a55: 2f 07 00     CMPW    AX,#0007H
 9a58: 82 46        BNC     $9AA0H
-9a5a: 28 ce 7a     CALL    !7ACEH
+9a5a: 28 ce 7a     CALL    Query_DFBE
 9a5d: 64 55 d5     MOVW    DE,#0D555H
 9a60: b9 aa        MOV     A,#0AAH
 9a62: 54           MOV     [DE],A
@@ -16800,7 +16795,7 @@ Delay_Loop:
 9a9b: 44           INCW    AX
 9a9c: 1a ac        MOVW    0FEACH,AX
 9a9e: 14 b3        BR      $9A53H
-9aa0: 28 ce 7a     CALL    !7ACEH
+9aa0: 28 ce 7a     CALL    Query_DFBE
 9aa3: 34           POP     AX
 9aa4: 1a ac        MOVW    0FEACH,AX
 9aa6: 37           POP     HL
@@ -16889,7 +16884,7 @@ Delay_Loop:
 9b51: 3c           PUSH    AX
 9b52: 28 6d 8b     CALL    Delay_Loop
 9b55: 34           POP     AX
-9b56: 28 ce 7a     CALL    !7ACEH
+9b56: 28 ce 7a     CALL    Query_DFBE
 9b59: 64 55 d5     MOVW    DE,#0D555H
 9b5c: b9 aa        MOV     A,#0AAH
 9b5e: 54           MOV     [DE],A
@@ -16914,7 +16909,7 @@ Delay_Loop:
 9b7f: 3c           PUSH    AX
 9b80: 28 6d 8b     CALL    Delay_Loop
 9b83: 34           POP     AX
-9b84: 28 ce 7a     CALL    !7ACEH
+9b84: 28 ce 7a     CALL    Query_DFBE
 9b87: 62 ea df     MOVW    BC,#0DFEAH
 9b8a: 1c 63        MOVW    AX,0FE63H
 9b8c: 24 48        MOVW    DE,AX
@@ -16932,7 +16927,7 @@ Delay_Loop:
 9b9e: 3c           PUSH    AX
 9b9f: 28 6d 8b     CALL    Delay_Loop
 9ba2: 34           POP     AX
-9ba3: 28 ce 7a     CALL    !7ACEH
+9ba3: 28 ce 7a     CALL    Query_DFBE
 9ba6: 64 55 d5     MOVW    DE,#0D555H
 9ba9: b9 aa        MOV     A,#0AAH
 9bab: 54           MOV     [DE],A
@@ -16958,7 +16953,7 @@ Delay_Loop:
 9bce: 3c           PUSH    AX
 9bcf: 28 6d 8b     CALL    Delay_Loop
 9bd2: 34           POP     AX
-9bd3: 28 ce 7a     CALL    !7ACEH
+9bd3: 28 ce 7a     CALL    Query_DFBE
 9bd6: 62 b6 df     MOVW    BC,#0DFB6H
 9bd9: 1c 63        MOVW    AX,0FE63H
 9bdb: 24 48        MOVW    DE,AX
@@ -17293,7 +17288,7 @@ Delay_Loop:
 9e7a: 20 77        MOV     A,0FE77H
 9e7c: 03 9c        CLR1    A.4
 9e7e: 22 77        MOV     0FE77H,A
-9e80: 72 03 13     BT      P3.2,$9E96H
+9e80: 72 03 13     BT      P3.2,$9E96H           ; if power NOT pushed, branch
 9e83: 76 69 0e     BT      0FE69H.6,$9E94H
 9e86: b6 69        SET1    0FE69H.6
 9e88: 08 a0 66 05  BF      0FE66H.0,$9E91H
@@ -17602,7 +17597,7 @@ a181: 80 04        BNZ     $0A187H
 a183: b5 69        SET1    0FE69H.5
 a185: 14 02        BR      $0A189H
 a187: a5 69        CLR1    0FE69H.5
-a189: 3a 75 01     MOV     0FE75H,#01H
+a189: 3a 75 01     MOV     Wheel_Count,#01H
 a18c: 2c 65 a2     BR      !0A265H
 a18f: 09 f0 98 fd  MOV     A,!0FD98H
 a193: 30 a1        SHR     A,4
@@ -17922,12 +17917,12 @@ a447: d8           XCH     A,X
 a448: 55           MOV     [HL],A
 a449: 06 20 01     MOV     A,[HL+01H]
 a44c: 22 a6        MOV     0FEA6H,A
-a44e: 91 5e        CALLF   !095EH
+a44e: 91 5e        CALLF   Serial_Output_Thing
 a450: 5d           MOV     A,[HL]
 a451: 22 a6        MOV     0FEA6H,A
-a453: 91 5e        CALLF   !095EH
+a453: 91 5e        CALLF   Serial_Output_Thing
 a455: b7 06        SET1    P6.7
-a457: 28 84 8b     CALL    !8B84H
+a457: 28 84 8b     CALL    Cycle_Serial_Clock
 a45a: a7 06        CLR1    P6.7
 a45c: 28 1d a5     CALL    !0A51DH
 a45f: 34           POP     AX
@@ -17954,7 +17949,7 @@ a484: 2d 04 00     ADDW    AX,#0004H
 a487: 24 48        MOVW    DE,AX
 a489: 5c           MOV     A,[DE]
 a48a: 22 a6        MOV     0FEA6H,A
-a48c: 91 5e        CALLF   !095EH
+a48c: 91 5e        CALLF   Serial_Output_Thing
 a48e: 37           POP     HL
 a48f: 56           RET
 a490: 3f           PUSH    HL
@@ -18014,9 +18009,9 @@ a4f2: 34           POP     AX
 a4f3: 1a b2        MOVW    I2C_OutputBuffer,AX
 a4f5: 5d           MOV     A,[HL]
 a4f6: 22 a6        MOV     0FEA6H,A
-a4f8: 91 5e        CALLF   !095EH
+a4f8: 91 5e        CALLF   Serial_Output_Thing
 a4fa: a7 06        CLR1    P6.7
-a4fc: 28 84 8b     CALL    !8B84H
+a4fc: 28 84 8b     CALL    Cycle_Serial_Clock
 a4ff: 28 1d a5     CALL    !0A51DH
 a502: 34           POP     AX
 a503: 37           POP     HL
@@ -18355,11 +18350,11 @@ a7d6: 24 68        MOVW    HL,AX
 a7d8: 3a ac 00     MOV     0FEACH,#00H
 a7db: 08 a5 69 03  BF      0FE69H.5,$0A7E2H
 a7df: 3a ac 01     MOV     0FEACH,#01H
-a7e2: 20 75        MOV     A,0FE75H
+a7e2: 20 75        MOV     A,Wheel_Count
 a7e4: 55           MOV     [HL],A
 a7e5: b9 00        MOV     A,#00H
 a7e7: 06 a0 01     MOV     [HL+01H],A
-a7ea: 3a 75 00     MOV     0FE75H,#00H
+a7ea: 3a 75 00     MOV     Wheel_Count,#00H
 a7ed: 4b           EI
 a7ee: 5d           MOV     A,[HL]
 a7ef: af 00        CMP     A,#00H
@@ -18546,7 +18541,7 @@ a986: 14 12        BR      $0A99AH
 a988: 05 e3        MOVW    AX,[HL]
 a98a: 1a a4        MOVW    0FEA4H,AX
 a98c: 0c a6 09 00  MOVW    0FEA6H,#0009H
-a990: 28 f7 ab     CALL    !0ABF7H
+a990: 28 f7 ab     CALL    Multiply_Thing
 a993: 1c a4        MOVW    AX,0FEA4H
 a995: 06 a0 01     MOV     [HL+01H],A
 a998: d8           XCH     A,X
@@ -18555,7 +18550,7 @@ a99a: 14 12        BR      $0A9AEH
 a99c: 05 e3        MOVW    AX,[HL]
 a99e: 1a a4        MOVW    0FEA4H,AX
 a9a0: 0c a6 05 00  MOVW    0FEA6H,#0005H
-a9a4: 28 f7 ab     CALL    !0ABF7H
+a9a4: 28 f7 ab     CALL    Multiply_Thing
 a9a7: 1c a4        MOVW    AX,0FEA4H
 a9a9: 06 a0 01     MOV     [HL+01H],A
 a9ac: d8           XCH     A,X
@@ -18860,6 +18855,7 @@ abf1: 1c a4        MOVW    AX,0FEA4H     ; otherwise compare lower order word
 abf3: 1f a8        CMPW    AX,0FEA8H
 abf5: 34           POP     AX
 abf6: 56           RET
+Multiply_Thing:
 abf7: 3c           PUSH    AX
 abf8: 3e           PUSH    DE
 abf9: 20 a4        MOV     A,0FEA4H
